@@ -20,37 +20,6 @@ function GrainOverlay() {
   return <div className="grain-overlay" aria-hidden />
 }
 
-// ── Marquee band ───────────────────────────────────────────
-function MarqueeBand() {
-  const items = [
-    "花间塑 FloraMotion",
-    "AI 智能教练",
-    "柔和悦动",
-    "繁花社区",
-    "经期舒缓",
-    "普拉提塑形",
-    "镜心成长",
-    "你的专属闺蜜",
-  ]
-  const repeated = [...items, ...items]
-
-  return (
-    <div className="relative overflow-hidden border-y border-border/40 py-3.5 bg-gradient-to-r from-primary/3 via-secondary/3 to-accent/3">
-      <div className="flex animate-marquee gap-0 whitespace-nowrap select-none">
-        {repeated.map((item, i) => (
-          <span
-            key={i}
-            className="inline-flex items-center gap-5 px-6 text-[11px] font-medium tracking-[0.22em] uppercase text-muted-foreground/60"
-          >
-            {item}
-            <span className="w-1 h-1 rounded-full bg-primary/30 flex-shrink-0" />
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ── AI 教练头像区 ──────────────────────────────────────────
 function AICoachArea() {
   return (
@@ -219,42 +188,44 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
           transition={{ duration: 1.1, delay: 0.85 }}
         />
 
-        {/* 底部数据栏 + 探索按钮 */}
+        {/* 底部数据栏 */}
         <motion.div
-          className="flex items-center justify-between py-4 md:py-5"
+          className="flex items-center gap-8 md:gap-12 py-4 md:py-5"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 1.1 }}
         >
-          <div className="flex items-center gap-8 md:gap-12">
-            {[
-              { label: "活跃用户", value: "240万+" },
-              { label: "精选课程", value: "800+" },
-              { label: "用户好评", value: "4.9★" },
-            ].map((stat) => (
-              <div key={stat.label} className="hidden sm:block">
-                <div className="text-base md:text-lg font-semibold text-foreground">{stat.value}</div>
-                <div className="text-[10px] md:text-xs text-muted-foreground mt-0.5 tracking-wide">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-
-          <button
-            onClick={onScrollDown}
-            className="flex flex-col items-center gap-1 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-          >
-            <span className="text-[10px] tracking-[0.3em] uppercase">探索更多</span>
-            <motion.div
-              animate={{ y: [0, 4, 0] }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </motion.div>
-          </button>
+          {[
+            { label: "活跃用户", value: "240万+" },
+            { label: "精选课程", value: "800+" },
+            { label: "用户好评", value: "4.9★" },
+          ].map((stat) => (
+            <div key={stat.label} className="hidden sm:block">
+              <div className="text-base md:text-lg font-semibold text-foreground">{stat.value}</div>
+              <div className="text-[10px] md:text-xs text-muted-foreground mt-0.5 tracking-wide">{stat.label}</div>
+            </div>
+          ))}
         </motion.div>
       </div>
+
+      {/* 探索更多 — 底部绝对居中 */}
+      <motion.button
+        onClick={onScrollDown}
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors z-10"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.4 }}
+      >
+        <span className="text-[10px] tracking-[0.3em] uppercase">探索更多</span>
+        <motion.div
+          animate={{ y: [0, 4, 0] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </motion.div>
+      </motion.button>
     </div>
   )
 }
@@ -786,7 +757,7 @@ export default function LandingPage() {
             style={{ transformOrigin: "center bottom", transformPerspective: 1400 }}
           >
             {/* 返回按钮 */}
-            <div className="sticky top-0 z-20 flex justify-center pt-4 pointer-events-none">
+            <div className="sticky top-0 z-20 flex justify-center pt-20 pointer-events-none">
               <motion.button
                 onClick={goToHero}
                 className="pointer-events-auto flex items-center gap-1.5 px-4 py-1.5 rounded-full glass-strong text-xs text-muted-foreground hover:text-foreground transition-colors shadow-sm"
@@ -802,10 +773,8 @@ export default function LandingPage() {
               </motion.button>
             </div>
 
-            <div className="-mt-10">
-              <MarqueeBand />
+            <div className="-mt-16">
               <FeaturesSection />
-              <MarqueeBand />
               <HighlightsSection />
               <CommunitySection />
               <AboutSection />
