@@ -3,7 +3,6 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef } from "react"
 import { Navigation } from "@/components/shared/navigation"
-import { BottomNav } from "@/components/shared/bottom-nav"
 import { Petal, BackgroundEffects } from "@/components/shared/effects"
 import { useAuth } from "@/contexts/auth-context"
 import { usePoints } from "@/contexts/points-context"
@@ -546,7 +545,6 @@ export default function WorkoutPage() {
         )}
       </AnimatePresence>
 
-      <BottomNav />
     </main>
   )
 }

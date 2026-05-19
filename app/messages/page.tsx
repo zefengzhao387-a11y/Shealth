@@ -3,7 +3,6 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Navigation } from "@/components/shared/navigation"
-import { BottomNav } from "@/components/shared/bottom-nav"
 import { BackgroundEffects } from "@/components/shared/effects"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
@@ -168,7 +167,6 @@ export default function MessagesPage() {
             </motion.button>
           </motion.div>
         </div>
-        <BottomNav />
       </main>
     )
   }
@@ -332,7 +330,6 @@ export default function MessagesPage() {
         </AnimatePresence>
       </div>
 
-      <BottomNav forceHide={!!selected} />
     </main>
   )
 }

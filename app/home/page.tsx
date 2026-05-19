@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
-import { BottomNav } from "@/components/shared/bottom-nav"
 import { Navigation } from "@/components/shared/navigation"
 
 // ── 工具 ─────────────────────────────────────────────────
@@ -207,11 +206,9 @@ export default function HomePage() {
 
       </div>
 
-      <div className="px-4 pb-20">
+      <div className="px-4 pb-6">
         <AIChat onAsk={askAI} thinking={thinking} error={error} />
       </div>
-
-      <BottomNav />
     </div>
   )
 }

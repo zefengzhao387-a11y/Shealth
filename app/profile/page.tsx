@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Navigation } from "@/components/shared/navigation"
-import { BottomNav } from "@/components/shared/bottom-nav"
 import { supabase } from "@/lib/supabase"
 import type { Dimension } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
@@ -687,7 +686,6 @@ export default function ProfilePage() {
             </motion.button>
           </motion.div>
         </div>
-        <BottomNav />
       </main>
     )
   }
@@ -944,7 +942,6 @@ export default function ProfilePage() {
         {showFriends && <FriendsModal onClose={() => { setShowFriends(false); setPendingCount(0) }} />}
       </AnimatePresence>
 
-      <BottomNav />
     </main>
   )
 }

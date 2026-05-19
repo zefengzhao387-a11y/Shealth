@@ -3,7 +3,6 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef } from "react"
 import { Navigation } from "@/components/shared/navigation"
-import { BottomNav } from "@/components/shared/bottom-nav"
 import { BloomAnimation, BackgroundEffects } from "@/components/shared/effects"
 import { supabase } from "@/lib/supabase"
 import type { Post, Comment } from "@/lib/supabase"
@@ -580,7 +579,7 @@ export default function CommunityPage() {
 
       {/* 发帖悬浮按钮 */}
       <motion.button
-        className="fixed bottom-28 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg"
+        className="fixed bottom-8 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg"
         onClick={handleCreatePost}
         whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}
         initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.5 }}
@@ -598,7 +597,6 @@ export default function CommunityPage() {
         )}
       </AnimatePresence>
 
-      <BottomNav />
     </main>
   )
 }
