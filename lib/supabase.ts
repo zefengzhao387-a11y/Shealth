@@ -2,12 +2,17 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 let _client: SupabaseClient | null = null
 
-function getClient(): SupabaseClient | null {
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  'https://aymcfhmrgfitbyavpnfp.supabase.co'
+
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5bWNmaG1yZ2ZpdGJ5YXZwbmZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNDY4ODMsImV4cCI6MjA5NDcyMjg4M30.n_RPHIkTmZH-yHW1Ta8j4K6MY57U5u5Dh6dQP2OQQcs'
+
+function getClient(): SupabaseClient {
   if (_client) return _client
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key) return null
-  _client = createClient(url, key)
+  _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   return _client
 }
 
@@ -24,9 +29,7 @@ function noopProxy(): unknown {
 
 export const supabase = new Proxy({} as SupabaseClient, {
   get(_, prop: string | symbol) {
-    const client = getClient()
-    if (!client) return noopProxy()
-    return (client as unknown as Record<string | symbol, unknown>)[prop]
+    return (getClient() as unknown as Record<string | symbol, unknown>)[prop]
   },
 })
 
