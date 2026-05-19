@@ -328,42 +328,48 @@ function CreatePostModal({ onClose, onPosted }: { onClose: () => void; onPosted:
   )
 }
 
+const PAGE_SIZE = 8
+
 export default function CommunityPage() {
   const { user, openAuthModal } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const [showCreatePost, setShowCreatePost] = useState(false)
 
-  const fetchPosts = async () => {
-    setLoading(true)
+  const fetchPage = async (offset: number, replace: boolean) => {
+    if (offset === 0) setLoading(true); else setLoadingMore(true)
+
     const { data, error } = await supabase
       .from('posts')
-      .select('*, profiles!posts_user_id_fkey(username), post_likes(count)')
+      .select('*, profiles!posts_user_id_fkey(username)')
       .order('created_at', { ascending: false })
-      .limit(20)
+      .range(offset, offset + PAGE_SIZE - 1)
 
-    if (error) console.error('[community] fetchPosts error:', error.code, error.message, error.details, error.hint)
+    if (error) console.error('[community] fetchPosts error:', error.code, error.message)
 
-    let postsWithLikes = (data ?? []).map((p: any) => ({
-      ...p,
-      likes_count: p.post_likes?.[0]?.count ?? p.likes_count ?? 0,
-    }))
+    const newPosts = data ?? []
+    setHasMore(newPosts.length === PAGE_SIZE)
 
-    if (user && postsWithLikes.length > 0) {
-      const postIds = postsWithLikes.map((p: any) => p.id)
+    let result = newPosts as any[]
+    if (user && result.length > 0) {
       const { data: likes } = await supabase
         .from('post_likes')
         .select('post_id')
         .eq('user_id', user.id)
-        .in('post_id', postIds)
+        .in('post_id', result.map((p: any) => p.id))
       const likedSet = new Set(likes?.map(l => l.post_id) ?? [])
-      postsWithLikes = postsWithLikes.map((p: any) => ({ ...p, liked: likedSet.has(p.id) }))
+      result = result.map((p: any) => ({ ...p, liked: likedSet.has(p.id) }))
     }
 
-    setPosts(postsWithLikes as any)
+    setPosts(prev => replace ? result : [...prev, ...result])
     setLoading(false)
+    setLoadingMore(false)
   }
+
+  const fetchPosts = () => fetchPage(0, true)
 
   useEffect(() => { setMounted(true) }, [])
   useEffect(() => { if (mounted) fetchPosts() }, [mounted, user])
@@ -424,7 +430,7 @@ export default function CommunityPage() {
           )}
 
           {/* 帖子列表 */}
-          {loading ? (
+          {loading && posts.length === 0 ? (
             <div className="space-y-4">
               {[1, 2, 3].map(i => (
                 <div key={i} className="glass rounded-3xl p-4 animate-pulse">
@@ -454,6 +460,20 @@ export default function CommunityPage() {
               {posts.map((post, i) => (
                 <PostCard key={post.id} post={post as any} index={i} onRequireAuth={openAuthModal} />
               ))}
+              {/* 加载更多 */}
+              {hasMore && (
+                <div className="flex justify-center mt-2 mb-4">
+                  <motion.button
+                    onClick={() => fetchPage(posts.length, false)}
+                    disabled={loadingMore}
+                    className="px-6 py-2.5 rounded-full glass text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    {loadingMore ? "加载中..." : "加载更多"}
+                  </motion.button>
+                </div>
+              )}
             </div>
           )}
         </div>

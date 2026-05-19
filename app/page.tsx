@@ -286,7 +286,7 @@ function FeaturesSection() {
   ]
 
   return (
-    <section id="features" className="relative py-20 md:py-28 px-6 md:px-12 overflow-hidden">
+    <section id="features" className="relative py-14 md:py-28 px-4 md:px-12 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-secondary/4 to-transparent" />
 
       <div className="relative z-10 max-w-6xl mx-auto">
@@ -314,35 +314,33 @@ function FeaturesSection() {
               transition={{ duration: 0.5, delay: i * 0.08 }}
             >
               <Link href={feature.href}>
-                <div className="flex items-center gap-5 md:gap-10 py-7 md:py-9 cursor-pointer">
+                <div className="flex items-center gap-3 md:gap-10 py-5 md:py-9 cursor-pointer">
                   {/* Large number */}
-                  <span className="text-4xl md:text-6xl font-bold text-primary/8 group-hover:text-primary/18 transition-colors w-12 md:w-20 flex-shrink-0 font-mono text-center leading-none select-none">
+                  <span className="text-3xl md:text-6xl font-bold text-primary/8 group-hover:text-primary/18 transition-colors w-10 md:w-20 flex-shrink-0 font-mono text-center leading-none select-none">
                     {String(i + 1).padStart(2, "0")}
                   </span>
 
                   {/* Icon pill */}
-                  <div className={`w-11 h-11 md:w-13 md:h-13 rounded-2xl ${feature.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl ${feature.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
                     {feature.icon}
                   </div>
 
                   {/* Text */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-base md:text-xl font-medium text-foreground mb-1 group-hover:text-primary transition-colors duration-200">
+                    <h3 className="text-sm md:text-xl font-medium text-foreground mb-0.5 md:mb-1 group-hover:text-primary transition-colors duration-200">
                       {feature.title}
                     </h3>
-                    <p className="text-xs md:text-sm text-muted-foreground leading-relaxed line-clamp-2 max-w-lg">
+                    <p className="text-xs md:text-sm text-muted-foreground leading-relaxed line-clamp-2 max-w-lg hidden sm:block">
                       {feature.description}
                     </p>
                   </div>
 
                   {/* Arrow */}
-                  <motion.div
-                    className="hidden md:flex w-9 h-9 rounded-full border border-border/30 items-center justify-center flex-shrink-0 group-hover:border-primary/50 group-hover:bg-primary/5 transition-all duration-200"
-                  >
-                    <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <div className="w-8 h-8 rounded-full border border-border/30 items-center justify-center flex-shrink-0 group-hover:border-primary/50 group-hover:bg-primary/5 transition-all duration-200 flex">
+                    <svg className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
-                  </motion.div>
+                  </div>
                 </div>
               </Link>
             </motion.div>
@@ -420,7 +418,7 @@ function HighlightsSection() {
   ]
 
   return (
-    <section className="relative py-20 md:py-28 px-6 md:px-12 overflow-hidden">
+    <section className="relative py-14 md:py-28 px-4 md:px-12 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/4 via-transparent to-secondary/4" />
 
       <div className="relative z-10 max-w-6xl mx-auto">
@@ -436,7 +434,7 @@ function HighlightsSection() {
         </motion.div>
 
         {/* Bento grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
           {highlights.map((item, i) => (
             <motion.div
               key={item.title}
@@ -467,7 +465,7 @@ function HighlightsSection() {
 // ── 社群展示 ───────────────────────────────────────────────
 function CommunitySection() {
   return (
-    <section className="relative py-20 md:py-28 px-6 md:px-12 overflow-hidden">
+    <section className="relative py-14 md:py-28 px-4 md:px-12 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent/4 to-transparent" />
 
       <div className="relative z-10 max-w-6xl mx-auto">
@@ -510,7 +508,7 @@ function CommunitySection() {
 // ── 关于（大引用 editorial） ───────────────────────────────
 function AboutSection() {
   return (
-    <section id="about" className="relative py-20 md:py-28 px-6 md:px-12 overflow-hidden">
+    <section id="about" className="relative py-14 md:py-28 px-4 md:px-12 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-lilac/8 to-transparent" />
 
       <div className="relative z-10 max-w-5xl mx-auto">
@@ -575,7 +573,7 @@ function CTASection() {
   const [isFocused, setIsFocused] = useState(false)
 
   return (
-    <section id="community" className="relative py-20 md:py-28 px-6 md:px-12 overflow-hidden">
+    <section id="community" className="relative py-14 md:py-28 px-4 md:px-12 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent" />
 
       <div className="relative z-10 max-w-2xl mx-auto text-center">
@@ -749,7 +747,7 @@ export default function LandingPage() {
           <motion.div
             key="content"
             ref={contentRef}
-            className="absolute inset-0 overflow-y-auto"
+            className="absolute inset-0 overflow-y-auto bg-background"
             initial={{ opacity: 0, y: 100, rotateX: -10, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100 }}
