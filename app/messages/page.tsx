@@ -2,7 +2,6 @@
 
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Navigation } from "@/components/shared/navigation"
 import { BackgroundEffects } from "@/components/shared/effects"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
@@ -153,7 +152,6 @@ export default function MessagesPage() {
     return (
       <main className="relative min-h-screen pb-32">
         <div className="fixed inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 -z-10" />
-        <Navigation />
         <div className="flex flex-col items-center justify-center min-h-screen px-8 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="text-6xl mb-4">💌</div>
@@ -175,9 +173,8 @@ export default function MessagesPage() {
     <main className="relative min-h-screen pb-20">
       <div className="fixed inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 -z-10" />
       <BackgroundEffects density="light" />
-      {!selected && <Navigation />}
 
-      <div className="relative z-10 pt-16 h-screen flex flex-col">
+      <div className="relative z-10 pt-3 h-screen flex flex-col">
         <AnimatePresence mode="wait">
           {selected ? (
             /* ── 聊天界面 ── */

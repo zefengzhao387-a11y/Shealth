@@ -49,6 +49,11 @@ interface PostWithMeta extends Post {
   comments_count?: number
 }
 
+function extractTags(content: string) {
+  const matches = content.match(/#([\u4e00-\u9fa5A-Za-z0-9_]+)/g) || []
+  return Array.from(new Set(matches.map((m) => m.trim())))
+}
+
 function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: number; onRequireAuth: () => void }) {
   const { user } = useAuth()
   const [liked, setLiked] = useState(post.liked ?? false)
@@ -165,6 +170,7 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
 
   const username = post.username ?? '花间用户'
   const authorSeed = post.user_id
+  const tags = extractTags(post.content)
 
   return (
     <motion.div
@@ -202,6 +208,15 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
 
       {/* 内容 */}
       <div className="px-4 pb-3">
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {tags.map((tag) => (
+              <span key={`${post.id}-${tag}`} className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
         <p className="text-foreground text-[15px] leading-[1.55] whitespace-pre-wrap break-words">{post.content}</p>
       </div>
 
@@ -367,9 +382,9 @@ function SendDMModal({ toUserId, toUsername, onClose }: { toUserId: string; toUs
 }
 
 // 发帖弹窗
-function CreatePostModal({ onClose, onPosted }: { onClose: () => void; onPosted: () => void }) {
+function CreatePostModal({ onClose, onPosted, defaultTag }: { onClose: () => void; onPosted: () => void; defaultTag?: string }) {
   const { user } = useAuth()
-  const [content, setContent] = useState('')
+  const [content, setContent] = useState(defaultTag ? `${defaultTag} ` : '')
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState('')
 
@@ -436,6 +451,7 @@ export default function CommunityPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [showCreatePost, setShowCreatePost] = useState(false)
+  const [composeTag, setComposeTag] = useState<string | undefined>(undefined)
 
   const fetchPage = async (offset: number, replace: boolean) => {
     if (offset === 0) setLoading(true); else setLoadingMore(true)
@@ -499,8 +515,9 @@ export default function CommunityPage() {
 
   if (!mounted) return <div className="min-h-screen bg-gradient-to-br from-cream via-peach/10 to-lilac/20" />
 
-  const handleCreatePost = () => {
+  const handleCreatePost = (tag?: string) => {
     if (!user) { openAuthModal(); return }
+    setComposeTag(tag)
     setShowCreatePost(true)
   }
 
@@ -526,7 +543,7 @@ export default function CommunityPage() {
                   className={`flex-shrink-0 px-4 py-2 rounded-full bg-gradient-to-r ${topic.gradient} text-[13px] font-medium text-foreground/90 border border-white/30`}
                   initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={handleCreatePost}
+                  onClick={() => handleCreatePost(`#${topic.name}`)}
                 >
                   #{topic.name}
                 </motion.button>
@@ -600,7 +617,7 @@ export default function CommunityPage() {
 
       {/* 发帖悬浮按钮 */}
       <motion.button
-        className="fixed bottom-8 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg"
+        className="fixed bottom-8 right-4 z-[59] w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg"
         onClick={handleCreatePost}
         whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}
         initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.5 }}
@@ -614,7 +631,11 @@ export default function CommunityPage() {
       {/* 发帖弹窗 */}
       <AnimatePresence>
         {showCreatePost && (
-          <CreatePostModal onClose={() => setShowCreatePost(false)} onPosted={fetchPosts} />
+          <CreatePostModal
+            onClose={() => { setShowCreatePost(false); setComposeTag(undefined) }}
+            onPosted={fetchPosts}
+            defaultTag={composeTag}
+          />
         )}
       </AnimatePresence>
 
