@@ -1,0 +1,658 @@
+"use client"
+
+import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { Navigation } from "@/components/shared/navigation"
+import { BottomNav } from "@/components/shared/bottom-nav"
+import { supabase } from "@/lib/supabase"
+import type { Dimension } from "@/lib/supabase"
+import { useAuth } from "@/contexts/auth-context"
+import { usePoints } from "@/contexts/points-context"
+import { BackgroundEffects } from "@/components/shared/effects"
+
+// 成就定义
+const ACHIEVEMENTS = [
+  { id: "first_workout", name: "初绽", desc: "完成第一次训练", icon: "🌸", condition: "完成 1 次训练", gradient: "from-peach/60 to-primary/50" },
+  { id: "week_streak", name: "坚持", desc: "连续打卡 7 天", icon: "🌟", condition: "连续打卡 7 天", gradient: "from-lilac/60 to-secondary/50" },
+  { id: "month_streak", name: "蜕变", desc: "连续打卡 30 天", icon: "👑", condition: "连续打卡 30 天", gradient: "from-sage/60 to-accent/50" },
+  { id: "hundred_points", name: "积累", desc: "累计 100 运动分", icon: "✨", condition: "累计 100 运动分", gradient: "from-primary/60 to-secondary/50" },
+  { id: "five_hundred_points", name: "绽放", desc: "累计 500 运动分", icon: "🌺", condition: "累计 500 运动分", gradient: "from-secondary/60 to-lilac/50" },
+  { id: "hour_total", name: "初心", desc: "累计运动 60 分钟", icon: "💪", condition: "累计运动 60 分钟", gradient: "from-accent/60 to-sage/50" },
+  { id: "ten_workouts", name: "勤勉", desc: "完成 10 次训练", icon: "🎯", condition: "完成 10 次训练", gradient: "from-peach/60 to-lilac/50" },
+  { id: "ten_hours_total", name: "花开", desc: "累计运动 600 分钟", icon: "🏵️", condition: "累计运动 600 分钟", gradient: "from-primary/60 to-accent/50" },
+  { id: "thousand_points", name: "满园", desc: "累计 1000 运动分", icon: "🎊", condition: "累计 1000 运动分", gradient: "from-sage/60 to-primary/50" },
+]
+
+// 贝塞尔曲线图
+function BezierChart({ data, color = "primary" }: { data: number[]; color?: string }) {
+  const w = 200, h = 60, p = 10
+  const min = Math.min(...data) - 1
+  const max = Math.max(...data) + 1
+  const range = max - min || 1
+  const pts = data.map((v, i) => ({
+    x: p + (i / (data.length - 1)) * (w - p * 2),
+    y: h - p - ((v - min) / range) * (h - p * 2),
+  }))
+  let path = `M ${pts[0].x} ${pts[0].y}`
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1], curr = pts[i]
+    const cp1x = prev.x + (curr.x - prev.x) / 3
+    const cp2x = curr.x - (curr.x - prev.x) / 3
+    path += ` C ${cp1x} ${prev.y}, ${cp2x} ${curr.y}, ${curr.x} ${curr.y}`
+  }
+  const area = path + ` L ${pts[pts.length - 1].x} ${h - p} L ${pts[0].x} ${h - p} Z`
+  return (
+    <svg width={w} height={h} className="overflow-visible">
+      <defs>
+        <linearGradient id={`cg-${color}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#FFB6C1" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="#FFB6C1" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id={`lg-${color}`} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#FFB6C1" /><stop offset="100%" stopColor="#DDA0DD" />
+        </linearGradient>
+      </defs>
+      <motion.path d={area} fill={`url(#cg-${color})`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} />
+      <motion.path d={path} fill="none" stroke={`url(#lg-${color})`} strokeWidth="2" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.2, ease: "easeInOut" }} />
+      <motion.circle cx={pts[pts.length - 1].x} cy={pts[pts.length - 1].y} r="4" fill="white" stroke="#FFB6C1" strokeWidth="2" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 1.2 }} />
+    </svg>
+  )
+}
+
+// 维度录入弹窗
+function DimensionModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const { user } = useAuth()
+  const [form, setForm] = useState({ weight: '', height: '', flexibility: '', strength: '', endurance: '' })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+    setSaving(true)
+    const { error } = await supabase.from('dimensions').insert({
+      user_id: user.id,
+      weight: form.weight ? parseFloat(form.weight) : null,
+      height: form.height ? parseFloat(form.height) : null,
+      flexibility: form.flexibility ? parseInt(form.flexibility) : null,
+      strength: form.strength ? parseInt(form.strength) : null,
+      endurance: form.endurance ? parseInt(form.endurance) : null,
+    })
+    if (error) { setError('保存失败，请重试'); setSaving(false); return }
+    onSaved()
+    onClose()
+  }
+
+  const fields = [
+    { key: 'weight', label: '体重', unit: 'kg', type: 'number', step: '0.1', placeholder: '如 52.5' },
+    { key: 'height', label: '身高', unit: 'cm', type: 'number', step: '0.1', placeholder: '如 165' },
+    { key: 'flexibility', label: '柔韧度', unit: '分', type: 'number', placeholder: '1-100 自评' },
+    { key: 'strength', label: '力量感', unit: '分', type: 'number', placeholder: '1-100 自评' },
+    { key: 'endurance', label: '耐力', unit: '分', type: 'number', placeholder: '1-100 自评' },
+  ]
+
+  return (
+    <>
+      <motion.div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+      <motion.div
+        className="fixed inset-x-4 bottom-4 z-[61] bg-card/95 backdrop-blur-xl rounded-3xl p-5 shadow-2xl border border-border/30 max-h-[85vh] overflow-y-auto"
+        initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="font-medium text-foreground">录入今日数据</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">记录你的身体变化轨迹</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full glass flex items-center justify-center">
+            <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <form onSubmit={submit} className="space-y-3">
+          {fields.map(f => (
+            <div key={f.key} className="flex items-center gap-3">
+              <label className="text-sm text-foreground w-16 flex-shrink-0">{f.label}</label>
+              <div className="flex-1 flex items-center gap-2 px-4 py-3 rounded-2xl bg-muted/60 border border-border/30 focus-within:border-primary/40 transition-colors">
+                <input
+                  type={f.type}
+                  step={(f as any).step}
+                  placeholder={f.placeholder}
+                  value={(form as any)[f.key]}
+                  onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                  className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
+                />
+                <span className="text-xs text-muted-foreground">{f.unit}</span>
+              </div>
+            </div>
+          ))}
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <motion.button
+            type="submit" disabled={saving}
+            className="w-full py-3 rounded-2xl bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium text-sm mt-2"
+            whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+          >
+            {saving ? '保存中...' : '保存记录'}
+          </motion.button>
+        </form>
+      </motion.div>
+    </>
+  )
+}
+
+// 成就徽章
+function AchievementBadge({ ach, unlocked, index }: { ach: typeof ACHIEVEMENTS[0]; unlocked: boolean; index: number }) {
+  const [showTooltip, setShowTooltip] = useState(false)
+  return (
+    <motion.div
+      className="flex flex-col items-center cursor-pointer"
+      initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: unlocked ? 1 : 0.45, scale: 1 }}
+      transition={{ delay: index * 0.05 }}
+      whileHover={{ scale: unlocked ? 1.12 : 1.05, y: -4 }}
+      onClick={() => setShowTooltip(!showTooltip)}
+    >
+      <motion.div
+        className={`relative w-16 h-16 rounded-2xl bg-gradient-to-br ${unlocked ? ach.gradient : 'from-muted to-muted'} flex items-center justify-center mb-2`}
+        style={{
+          boxShadow: unlocked
+            ? "0 4px 15px rgba(255,182,193,0.35), inset 0 2px 10px rgba(255,255,255,0.4)"
+            : "none",
+          filter: unlocked ? 'none' : 'grayscale(1)',
+        }}
+        animate={unlocked ? { boxShadow: ["0 4px 15px rgba(255,182,193,0.3)", "0 4px 25px rgba(255,182,193,0.5)", "0 4px 15px rgba(255,182,193,0.3)"] } : {}}
+        transition={{ duration: 2, repeat: Infinity }}
+      >
+        {unlocked ? (
+          <span className="text-2xl">{ach.icon}</span>
+        ) : (
+          <svg className="w-7 h-7 text-muted-foreground/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        )}
+        {unlocked && (
+          <div className="absolute inset-0 rounded-2xl overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent" />
+          </div>
+        )}
+      </motion.div>
+      <p className="text-xs font-medium text-foreground text-center leading-tight">{ach.name}</p>
+
+      {/* 条件提示 */}
+      <AnimatePresence>
+        {showTooltip && (
+          <motion.div
+            className="absolute z-30 bottom-full mb-2 left-1/2 -translate-x-1/2 px-3 py-2 rounded-xl glass-strong text-xs text-foreground whitespace-nowrap shadow-lg"
+            initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+          >
+            {unlocked ? `✓ ${ach.desc}` : `🔒 ${ach.condition}`}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  )
+}
+
+// ── 消息通知设置 ──────────────────────────────────────────────
+function NotifModal({ onClose }: { onClose: () => void }) {
+  const KEYS = ['workout_reminder', 'community_interaction', 'checkin_reminder', 'dm_notification']
+  const LABELS = ['运动提醒', '社区互动（点赞/评论）', '每日打卡提醒', '私信通知']
+  const [toggles, setToggles] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem('notif_settings') ?? '{}') } catch { return {} }
+  })
+  const toggle = (k: string) => {
+    const next = { ...toggles, [k]: !toggles[k] }
+    setToggles(next)
+    localStorage.setItem('notif_settings', JSON.stringify(next))
+  }
+  return (
+    <>
+      <motion.div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+      <motion.div className="fixed inset-x-4 bottom-4 z-[61] bg-card/95 backdrop-blur-xl rounded-3xl p-5 shadow-2xl border border-border/30"
+        initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-medium text-foreground">消息通知</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full glass flex items-center justify-center">
+            <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="space-y-4">
+          {KEYS.map((k, i) => (
+            <div key={k} className="flex items-center justify-between">
+              <span className="text-sm text-foreground">{LABELS[i]}</span>
+              <motion.button
+                className={`w-12 h-6 rounded-full relative transition-colors ${toggles[k] ? 'bg-gradient-to-r from-primary to-secondary' : 'bg-muted'}`}
+                onClick={() => toggle(k)} whileTap={{ scale: 0.95 }}
+              >
+                <motion.div className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm"
+                  animate={{ left: toggles[k] ? '1.75rem' : '0.25rem' }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              </motion.button>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground mt-5 text-center">设置仅保存在本设备</p>
+      </motion.div>
+    </>
+  )
+}
+
+// ── 隐私设置 ──────────────────────────────────────────────────
+function PrivacyModal({ onClose }: { onClose: () => void }) {
+  const [pub, setPub] = useState(() => localStorage.getItem('privacy_public') !== 'false')
+  const [allowDM, setAllowDM] = useState(() => localStorage.getItem('privacy_dm') !== 'false')
+  return (
+    <>
+      <motion.div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+      <motion.div className="fixed inset-x-4 bottom-4 z-[61] bg-card/95 backdrop-blur-xl rounded-3xl p-5 shadow-2xl border border-border/30"
+        initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-medium text-foreground">隐私设置</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full glass flex items-center justify-center">
+            <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="space-y-4">
+          {[
+            { label: '公开我的档案', desc: '其他用户可查看你的动态', val: pub, set: (v: boolean) => { setPub(v); localStorage.setItem('privacy_public', String(v)) } },
+            { label: '允许私信', desc: '其他用户可向你发送私信', val: allowDM, set: (v: boolean) => { setAllowDM(v); localStorage.setItem('privacy_dm', String(v)) } },
+          ].map(item => (
+            <div key={item.label}>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-sm text-foreground">{item.label}</span>
+                <motion.button
+                  className={`w-12 h-6 rounded-full relative transition-colors ${item.val ? 'bg-gradient-to-r from-primary to-secondary' : 'bg-muted'}`}
+                  onClick={() => item.set(!item.val)} whileTap={{ scale: 0.95 }}
+                >
+                  <motion.div className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm"
+                    animate={{ left: item.val ? '1.75rem' : '0.25rem' }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                </motion.button>
+              </div>
+              <p className="text-xs text-muted-foreground">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+    </>
+  )
+}
+
+// ── 帮助中心 ──────────────────────────────────────────────────
+const FAQ = [
+  { q: '如何获得运动分？', a: '完成悦动专区的课程后，系统会自动发放对应运动分。每日打卡也可获得 10 分。' },
+  { q: '连续打卡有什么奖励？', a: '连续打卡会提升你的连续天数记录，并可解锁「坚持」「蜕变」等成就徽章。' },
+  { q: '维度数据如何使用？', a: '在「镜心」页面点击「录入今日数据」，输入体重、柔韧度等指标，积累 2 条以上可查看趋势图。' },
+  { q: '如何发送私信？', a: '在繁花社区的帖子下方点击信封图标，即可向发帖者发送私信。' },
+  { q: '成就徽章如何解锁？', a: '满足相应条件后系统会自动解锁，点击灰色徽章可查看解锁条件。' },
+]
+function HelpModal({ onClose }: { onClose: () => void }) {
+  const [open, setOpen] = useState<number | null>(null)
+  return (
+    <>
+      <motion.div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+      <motion.div className="fixed inset-x-4 bottom-4 z-[61] bg-card/95 backdrop-blur-xl rounded-3xl p-5 shadow-2xl border border-border/30 max-h-[80vh] overflow-y-auto"
+        initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-medium text-foreground">帮助中心</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full glass flex items-center justify-center">
+            <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="space-y-2">
+          {FAQ.map((item, i) => (
+            <motion.div key={i} className="rounded-2xl overflow-hidden border border-border/30">
+              <button className="w-full flex items-center justify-between p-4 text-left" onClick={() => setOpen(open === i ? null : i)}>
+                <span className="text-sm font-medium text-foreground">{item.q}</span>
+                <motion.svg className="w-4 h-4 text-muted-foreground flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                  animate={{ rotate: open === i ? 90 : 0 }} transition={{ duration: 0.2 }}>
+                  <path d="M9 18l6-6-6-6" />
+                </motion.svg>
+              </button>
+              <AnimatePresence>
+                {open === i && (
+                  <motion.div className="px-4 pb-4" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
+                    <p className="text-sm text-muted-foreground">{item.a}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+    </>
+  )
+}
+
+// ── 关于花间塑 ────────────────────────────────────────────────
+function AboutModal({ onClose }: { onClose: () => void }) {
+  return (
+    <>
+      <motion.div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+      <motion.div className="fixed inset-x-4 bottom-4 z-[61] bg-card/95 backdrop-blur-xl rounded-3xl p-5 shadow-2xl border border-border/30"
+        initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}>
+        <div className="text-center mb-5">
+          <span className="font-brand text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">花间塑</span>
+          <p className="text-xs text-muted-foreground mt-1">FloraMotion · v1.0.0</p>
+        </div>
+        <p className="text-sm text-muted-foreground text-center leading-relaxed mb-6">
+          为每一位女性打造的 AI 闺蜜健身教练<br />
+          让蜕变成为一种温柔的习惯
+        </p>
+        <div className="glass rounded-2xl p-4 space-y-3">
+          {[
+            { label: '版本', value: '1.0.0' },
+            { label: '开发团队', value: 'FloraMotion Studio' },
+            { label: '技术栈', value: 'Next.js · Supabase · Framer Motion' },
+          ].map(item => (
+            <div key={item.label} className="flex justify-between text-sm">
+              <span className="text-muted-foreground">{item.label}</span>
+              <span className="text-foreground">{item.value}</span>
+            </div>
+          ))}
+        </div>
+        <button onClick={onClose} className="w-full mt-4 py-3 rounded-2xl bg-muted/60 text-sm text-muted-foreground">关闭</button>
+      </motion.div>
+    </>
+  )
+}
+
+export default function ProfilePage() {
+  const { user, profile, openAuthModal } = useAuth()
+  const { totalPoints, streak, totalMinutes, todayCheckedIn, recordCheckin, refreshStats, unlockedAchievements } = usePoints()
+  const [mounted, setMounted] = useState(false)
+  const [dimensions, setDimensions] = useState<Dimension[]>([])
+  const [showDimModal, setShowDimModal] = useState(false)
+  const [checkingIn, setCheckingIn] = useState(false)
+  const [checkInSuccess, setCheckInSuccess] = useState(false)
+  const [showNotif, setShowNotif] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
+  const [showAbout, setShowAbout] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+
+  useEffect(() => {
+    if (!user) return
+    supabase.from('dimensions').select('*').eq('user_id', user.id).order('recorded_at', { ascending: false }).limit(7)
+      .then(({ data }) => { if (data) setDimensions(data) })
+  }, [user])
+
+  const handleCheckin = async () => {
+    if (!user) { openAuthModal(); return }
+    if (todayCheckedIn || checkingIn) return
+    setCheckingIn(true)
+    const ok = await recordCheckin()
+    if (ok) setCheckInSuccess(true)
+    setCheckingIn(false)
+    setTimeout(() => setCheckInSuccess(false), 3000)
+  }
+
+  if (!mounted) return <div className="min-h-screen bg-gradient-to-br from-cream via-peach/10 to-lilac/20" />
+
+  // 未登录状态
+  if (!user) {
+    return (
+      <main className="relative min-h-screen pb-32">
+        <div className="fixed inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 -z-10" />
+        <Navigation />
+        <div className="flex flex-col items-center justify-center min-h-screen px-8 text-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="text-6xl mb-4">🌸</div>
+            <h2 className="text-xl font-medium text-foreground mb-2">登录后查看镜心</h2>
+            <p className="text-sm text-muted-foreground mb-8">记录你的身体变化，解锁专属成就</p>
+            <motion.button
+              className="px-8 py-3 rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium"
+              onClick={openAuthModal} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+            >
+              登录 / 注册
+            </motion.button>
+          </motion.div>
+        </div>
+        <BottomNav />
+      </main>
+    )
+  }
+
+  // 维度数据处理（取最近7条组成趋势）
+  const dimData = {
+    weight: dimensions.map(d => d.weight ?? 0).filter(Boolean).reverse(),
+    flexibility: dimensions.map(d => d.flexibility ?? 0).filter(Boolean).reverse(),
+    strength: dimensions.map(d => d.strength ?? 0).filter(Boolean).reverse(),
+    endurance: dimensions.map(d => d.endurance ?? 0).filter(Boolean).reverse(),
+  }
+  const latestDim = dimensions[0]
+
+  return (
+    <main className="relative min-h-screen pb-32">
+      <div className="fixed inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 -z-10" />
+      <BackgroundEffects density="light" />
+
+      <Navigation />
+
+      <div className="relative z-10 pt-20 px-4">
+        <div className="max-w-2xl mx-auto">
+
+          {/* 个人头部 */}
+          <motion.div className="mb-6" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="relative rounded-3xl overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-secondary/10 to-lilac/20" />
+              <div className="relative p-5">
+                <div className="flex items-center gap-4 mb-4">
+                  <motion.div className="relative" whileHover={{ scale: 1.05 }}>
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/50 to-secondary/50 flex items-center justify-center">
+                      <svg className="w-10 h-10 text-primary-foreground" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="8" r="4" /><path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" />
+                      </svg>
+                    </div>
+                  </motion.div>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-medium text-foreground">{profile?.username ?? '花间仙子'}</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">@{profile?.username ?? '花间仙子'}</p>
+                    <div className="mt-2 h-2 bg-muted/50 rounded-full overflow-hidden">
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-primary to-secondary rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min((totalPoints % 100), 100)}%` }}
+                        transition={{ duration: 1, delay: 0.5 }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">距下一级还差 {100 - (totalPoints % 100)} 运动分</p>
+                  </div>
+                </div>
+
+                {/* 统计卡片 */}
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  {[
+                    { label: "连续打卡", value: `${streak} 天` },
+                    { label: "运动时长", value: `${totalMinutes} 分` },
+                    { label: "运动分", value: totalPoints.toString() },
+                  ].map(stat => (
+                    <motion.div key={stat.label} className="glass rounded-2xl p-3 text-center" whileHover={{ scale: 1.02, y: -2 }}>
+                      <p className="text-lg font-medium text-foreground">{stat.value}</p>
+                      <p className="text-xs text-muted-foreground">{stat.label}</p>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* 打卡按钮 */}
+                <motion.button
+                  onClick={handleCheckin}
+                  disabled={todayCheckedIn || checkingIn}
+                  className={`w-full py-3 rounded-2xl font-medium text-sm transition-all relative overflow-hidden ${
+                    todayCheckedIn || checkInSuccess
+                      ? 'bg-sage/20 text-accent'
+                      : 'bg-gradient-to-r from-primary to-secondary text-primary-foreground'
+                  }`}
+                  whileHover={!todayCheckedIn ? { scale: 1.01 } : {}}
+                  whileTap={!todayCheckedIn ? { scale: 0.98 } : {}}
+                  style={!todayCheckedIn ? { boxShadow: "0 4px 20px rgba(255,182,193,0.35)" } : {}}
+                >
+                  {checkInSuccess ? '✓ 打卡成功！+10 运动分' : todayCheckedIn ? '✓ 今日已打卡' : checkingIn ? '打卡中...' : '今日打卡'}
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* 维度数据 */}
+          <motion.div className="mb-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-medium text-foreground">身体维度</h3>
+              <motion.button
+                className="text-xs text-primary flex items-center gap-1"
+                onClick={() => setShowDimModal(true)}
+                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                录入今日数据
+              </motion.button>
+            </div>
+
+            {dimensions.length === 0 ? (
+              <motion.div
+                className="glass rounded-2xl p-6 text-center"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              >
+                <p className="text-3xl mb-2">📊</p>
+                <p className="text-sm text-foreground mb-1">还没有维度记录</p>
+                <p className="text-xs text-muted-foreground mb-4">开始记录身体变化，见证你的蜕变</p>
+                <motion.button
+                  className="px-5 py-2 rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground text-sm"
+                  onClick={() => setShowDimModal(true)}
+                  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                >
+                  录入第一条数据
+                </motion.button>
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {latestDim?.weight != null && dimData.weight.length > 1 && (
+                  <motion.div className="glass rounded-2xl p-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileHover={{ scale: 1.02 }}>
+                    <p className="text-xs text-muted-foreground mb-1">体重</p>
+                    <div className="flex items-baseline gap-1 mb-2"><span className="text-2xl font-medium text-foreground">{latestDim.weight}</span><span className="text-xs text-muted-foreground">kg</span></div>
+                    <BezierChart data={dimData.weight} />
+                  </motion.div>
+                )}
+                {latestDim?.flexibility != null && dimData.flexibility.length > 1 && (
+                  <motion.div className="glass rounded-2xl p-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} whileHover={{ scale: 1.02 }}>
+                    <p className="text-xs text-muted-foreground mb-1">柔韧度</p>
+                    <div className="flex items-baseline gap-1 mb-2"><span className="text-2xl font-medium text-foreground">{latestDim.flexibility}</span><span className="text-xs text-muted-foreground">分</span></div>
+                    <BezierChart data={dimData.flexibility} color="secondary" />
+                  </motion.div>
+                )}
+                {latestDim?.strength != null && dimData.strength.length > 1 && (
+                  <motion.div className="glass rounded-2xl p-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} whileHover={{ scale: 1.02 }}>
+                    <p className="text-xs text-muted-foreground mb-1">力量感</p>
+                    <div className="flex items-baseline gap-1 mb-2"><span className="text-2xl font-medium text-foreground">{latestDim.strength}</span><span className="text-xs text-muted-foreground">分</span></div>
+                    <BezierChart data={dimData.strength} />
+                  </motion.div>
+                )}
+                {latestDim?.endurance != null && dimData.endurance.length > 1 && (
+                  <motion.div className="glass rounded-2xl p-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} whileHover={{ scale: 1.02 }}>
+                    <p className="text-xs text-muted-foreground mb-1">耐力</p>
+                    <div className="flex items-baseline gap-1 mb-2"><span className="text-2xl font-medium text-foreground">{latestDim.endurance}</span><span className="text-xs text-muted-foreground">分</span></div>
+                    <BezierChart data={dimData.endurance} color="secondary" />
+                  </motion.div>
+                )}
+                {/* 数据少于2条时提示 */}
+                {dimData.weight.length <= 1 && (
+                  <div className="col-span-2 text-center py-4">
+                    <p className="text-xs text-muted-foreground">已记录 {dimensions.length} 条数据，再记录 {Math.max(0, 2 - dimensions.length)} 条后可显示趋势图</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
+
+          {/* 成就徽章 */}
+          <motion.div className="mb-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-medium text-foreground">成就徽章</h3>
+              <span className="text-xs text-muted-foreground">{unlockedAchievements.length}/{ACHIEVEMENTS.length}</span>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              {ACHIEVEMENTS.map((ach, i) => (
+                <div key={ach.id} className="relative flex justify-center">
+                  <AchievementBadge ach={ach} unlocked={unlockedAchievements.includes(ach.id)} index={i} />
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* 私信箱入口 */}
+          <motion.div className="mb-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.38 }}>
+            <Link href="/messages">
+              <motion.div
+                className="glass rounded-2xl p-4 flex items-center gap-3"
+                whileHover={{ scale: 1.01, y: -1 }} whileTap={{ scale: 0.98 }}
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">私信箱</p>
+                  <p className="text-xs text-muted-foreground">查看好友私信</p>
+                </div>
+                <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+              </motion.div>
+            </Link>
+          </motion.div>
+
+          {/* 设置 */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
+            <div className="glass rounded-2xl overflow-hidden">
+              {[
+                { label: "消息通知", icon: <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" />, onClick: () => setShowNotif(true) },
+                { label: "隐私设置", icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />, onClick: () => setShowPrivacy(true) },
+                { label: "帮助中心", icon: <><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></>, onClick: () => setShowHelp(true) },
+                { label: "关于花间塑", icon: <><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></>, onClick: () => setShowAbout(true) },
+              ].map((item, i, arr) => (
+                <motion.button
+                  key={item.label}
+                  onClick={item.onClick}
+                  className={`w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors ${i !== arr.length - 1 ? 'border-b border-border/30' : ''}`}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">{item.icon}</svg>
+                    </div>
+                    <span className="text-sm text-foreground">{item.label}</span>
+                  </div>
+                  <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* 弹窗层 */}
+      <AnimatePresence>
+        {showDimModal && (
+          <DimensionModal
+            onClose={() => setShowDimModal(false)}
+            onSaved={() => {
+              supabase.from('dimensions').select('*').eq('user_id', user!.id).order('recorded_at', { ascending: false }).limit(7)
+                .then(({ data }) => { if (data) setDimensions(data) })
+              refreshStats()
+            }}
+          />
+        )}
+        {showNotif && <NotifModal onClose={() => setShowNotif(false)} />}
+        {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
+        {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+        {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+      </AnimatePresence>
+
+      <BottomNav />
+    </main>
+  )
+}

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(Get-ChildItem -Recurse -Attributes D -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(node -e \"require\\('@pixiv/three-vrm'\\); console.log\\('vrm ok'\\)\")"
+    ]
+  }
+}
