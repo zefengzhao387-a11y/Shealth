@@ -15,7 +15,7 @@ const VIEW_CONFIGS = {
   full:     { pos: [0, 0.05, 3.6]  as const, target: [0, 0.05, 0] as const, fov: 36 },
 }
 
-function VRMScene({ view }: { view: keyof typeof VIEW_CONFIGS }) {
+function VRMScene({ view, onLoaded }: { view: keyof typeof VIEW_CONFIGS; onLoaded?: () => void }) {
   const groupRef = useRef<THREE.Group>(null!)
   const vrmRef   = useRef<any>(null)
   const cfg = VIEW_CONFIGS[view]
@@ -44,6 +44,7 @@ function VRMScene({ view }: { view: keyof typeof VIEW_CONFIGS }) {
             vrm.scene.rotation.y = Math.PI
             groupRef.current.add(vrm.scene)
             vrmRef.current = vrm
+            onLoaded?.()
           },
           undefined,
           (err: any) => console.error('[VRM] load error:', err),
@@ -96,19 +97,14 @@ function VRMScene({ view }: { view: keyof typeof VIEW_CONFIGS }) {
         enableZoom={false} enablePan={false} enableRotate={false}
         target={cfg.target}
       />
-
-      {/* Studio lighting */}
       <ambientLight intensity={0.75} color="#fff9f5" />
-      {/* Key light — front-left, warm white */}
       <pointLight position={[-2, 3, 3]}   intensity={2.0} color="#ffffff" />
-      {/* Fill light — right side, soft pink */}
       <pointLight position={[2.5, 2, 2]}  intensity={0.8} color="#FFD0DC" />
-      {/* Rim light — back, cool lavender */}
       <pointLight position={[0, 1, -3]}   intensity={0.6} color="#D8C8FF" />
-      {/* Ground bounce */}
       <pointLight position={[0, -2, 1]}   intensity={0.2} color="#FFE8D0" />
-
-      {/* VRM scene root: offset so VRM y=0 (feet) sits at scene y=-0.95 */}
+      {/* Pulsing orb shown while VRM is loading */}
+      {!vrmRef.current && <LoadingOrb />}
+      {/* VRM scene root */}
       <group ref={groupRef} position={[0, -0.95, 0]} />
     </>
   )
@@ -132,10 +128,11 @@ function LoadingOrb() {
 
 export function DigitalCoach({ view = 'portrait' }: { view?: keyof typeof VIEW_CONFIGS }) {
   return (
-    <div className="w-full h-full">
+    <div style={{ width: '100%', height: '100%', minHeight: '100%' }}>
       <Canvas
         gl={{ antialias: true, alpha: true }}
-        style={{ background: 'transparent' }}
+        style={{ background: 'transparent', width: '100%', height: '100%' }}
+        resize={{ scroll: false, debounce: { scroll: 50, resize: 0 } }}
       >
         <VRMScene view={view} />
       </Canvas>

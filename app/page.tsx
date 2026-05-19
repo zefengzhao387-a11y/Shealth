@@ -287,7 +287,6 @@ function FeaturesSection() {
 
   return (
     <section id="features" className="relative py-14 md:py-28 px-4 md:px-12 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-secondary/4 to-transparent" />
 
       <div className="relative z-10 max-w-6xl mx-auto">
         {/* Section header */}
@@ -419,7 +418,6 @@ function HighlightsSection() {
 
   return (
     <section className="relative py-14 md:py-28 px-4 md:px-12 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/4 via-transparent to-secondary/4" />
 
       <div className="relative z-10 max-w-6xl mx-auto">
         <motion.div
@@ -466,7 +464,6 @@ function HighlightsSection() {
 function CommunitySection() {
   return (
     <section className="relative py-14 md:py-28 px-4 md:px-12 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent/4 to-transparent" />
 
       <div className="relative z-10 max-w-6xl mx-auto">
         <motion.div
@@ -509,7 +506,6 @@ function CommunitySection() {
 function AboutSection() {
   return (
     <section id="about" className="relative py-14 md:py-28 px-4 md:px-12 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-lilac/8 to-transparent" />
 
       <div className="relative z-10 max-w-5xl mx-auto">
         <motion.div
@@ -574,7 +570,6 @@ function CTASection() {
 
   return (
     <section id="community" className="relative py-14 md:py-28 px-4 md:px-12 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent" />
 
       <div className="relative z-10 max-w-2xl mx-auto text-center">
         <motion.div
