@@ -2,20 +2,31 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 let _client: SupabaseClient | null = null
 
-function getClient(): SupabaseClient {
+function getClient(): SupabaseClient | null {
   if (_client) return _client
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key) {
-    throw new Error('Supabase env vars not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.')
-  }
+  if (!url || !key) return null
   _client = createClient(url, key)
   return _client
 }
 
+// When env vars are missing, return a recursive no-op proxy so the app
+// degrades gracefully instead of crashing (all calls resolve to { data: null, error })
+function noopProxy(): unknown {
+  const stub = () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } })
+  return new Proxy(Object.assign(stub, {}), {
+    get: () => noopProxy(),
+    apply: (_t, _this, _args) =>
+      Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }),
+  })
+}
+
 export const supabase = new Proxy({} as SupabaseClient, {
   get(_, prop: string | symbol) {
-    return (getClient() as unknown as Record<string | symbol, unknown>)[prop]
+    const client = getClient()
+    if (!client) return noopProxy()
+    return (client as unknown as Record<string | symbol, unknown>)[prop]
   },
 })
 
