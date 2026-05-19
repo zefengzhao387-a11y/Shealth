@@ -45,13 +45,19 @@ function UserAvatar({ seed, size = 10 }: { seed: string; size?: number }) {
 }
 
 // 帖子卡片
-function PostCard({ post, index, onRequireAuth }: { post: Post & { profiles?: { username: string | null } }; index: number; onRequireAuth: () => void }) {
+interface PostWithMeta extends Post {
+  username?: string | null
+  comments_count?: number
+}
+
+function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: number; onRequireAuth: () => void }) {
   const { user } = useAuth()
   const [liked, setLiked] = useState(post.liked ?? false)
   const [likesCount, setLikesCount] = useState(post.likes_count)
+  const [commentsCount, setCommentsCount] = useState(post.comments_count ?? 0)
   const [showBloom, setShowBloom] = useState(false)
   const [showComments, setShowComments] = useState(false)
-  const [comments, setComments] = useState<(Comment & { profiles?: { username: string | null } })[]>([])
+  const [comments, setComments] = useState<(Comment & { username?: string | null })[]>([])
   const [commentText, setCommentText] = useState('')
   const [posting, setPosting] = useState(false)
   const [showDM, setShowDM] = useState(false)
@@ -61,12 +67,12 @@ function PostCard({ post, index, onRequireAuth }: { post: Post & { profiles?: { 
   useEffect(() => {
     if (!user || user.id === post.user_id) return
     supabase.from('friendships')
-      .select('status')
+      .select('status, requester_id, addressee_id')
       .or(`and(requester_id.eq.${user.id},addressee_id.eq.${post.user_id}),and(requester_id.eq.${post.user_id},addressee_id.eq.${user.id})`)
-      .maybeSingle()
       .then(({ data }) => {
-        if (!data) setFriendStatus('none')
-        else if (data.status === 'accepted') setFriendStatus('accepted')
+        if (!data || data.length === 0) { setFriendStatus('none'); return }
+        const f = data[0]
+        if (f.status === 'accepted') setFriendStatus('accepted')
         else setFriendStatus('pending')
       })
   }, [user, post.user_id])
@@ -82,11 +88,18 @@ function PostCard({ post, index, onRequireAuth }: { post: Post & { profiles?: { 
   const handleLike = async () => {
     if (!user) { onRequireAuth(); return }
     if (liked) {
-      setLiked(false); setLikesCount(prev => prev - 1)
+      setLiked(false)
+      const next = Math.max(0, likesCount - 1)
+      setLikesCount(next)
       await supabase.from('post_likes').delete().match({ user_id: user.id, post_id: post.id })
+      await supabase.from('posts').update({ likes_count: next }).eq('id', post.id)
     } else {
-      setLiked(true); setLikesCount(prev => prev + 1); setShowBloom(true)
+      setLiked(true)
+      const next = likesCount + 1
+      setLikesCount(next)
+      setShowBloom(true)
       await supabase.from('post_likes').insert({ user_id: user.id, post_id: post.id })
+      await supabase.from('posts').update({ likes_count: next }).eq('id', post.id)
     }
   }
 
@@ -95,11 +108,19 @@ function PostCard({ post, index, onRequireAuth }: { post: Post & { profiles?: { 
     setShowComments(true)
     const { data } = await supabase
       .from('comments')
-      .select('*, profiles!comments_user_id_fkey(username)')
+      .select('*')
       .eq('post_id', post.id)
       .order('created_at', { ascending: true })
-      .limit(10)
-    if (data) setComments(data as any)
+      .limit(50)
+    if (data && data.length > 0) {
+      const { data: profs } = await supabase
+        .from('profiles').select('id, username').in('id', data.map((c: any) => c.user_id))
+      const map = new Map(profs?.map((p: any) => [p.id, p.username]) ?? [])
+      setComments(data.map((c: any) => ({ ...c, username: map.get(c.user_id) ?? null })))
+      setCommentsCount(data.length)
+    } else {
+      setComments([])
+    }
   }
 
   const submitComment = async (e: React.FormEvent) => {
@@ -109,82 +130,95 @@ function PostCard({ post, index, onRequireAuth }: { post: Post & { profiles?: { 
     setPosting(true)
     const { data } = await supabase.from('comments').insert({
       user_id: user.id, post_id: post.id, content: commentText.trim(),
-    }).select('*, profiles!comments_user_id_fkey(username)').single()
-    if (data) setComments(prev => [...prev, data as any])
+    }).select('*').single()
+    if (data) {
+      setComments(prev => [...prev, { ...(data as any), username: (data as any).user_id === user.id ? null : null }])
+      setCommentsCount(c => c + 1)
+    }
     setCommentText('')
     setPosting(false)
   }
 
-  const username = post.profiles?.username ?? '花间用户'
+  const username = post.username ?? '花间用户'
   const authorSeed = post.user_id
 
   return (
     <motion.div
-      className="glass rounded-3xl overflow-hidden mb-4"
-      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08 }}
+      className="bg-card/70 backdrop-blur-sm rounded-2xl overflow-hidden mb-3 border border-border/40"
+      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.05, 0.3) }}
     >
-      {/* 作者 */}
-      <div className="p-4 pb-2 flex items-center gap-3">
-        <UserAvatar seed={authorSeed} size={10} />
-        <div>
-          <p className="font-medium text-foreground text-sm">{username}</p>
-          <p className="text-xs text-muted-foreground">{timeAgo(post.created_at)}</p>
+      {/* 作者栏 */}
+      <div className="px-4 pt-3.5 pb-2 flex items-center gap-3">
+        <UserAvatar seed={authorSeed} size={9} />
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-foreground text-[15px] truncate">{username}</p>
+          <p className="text-[11px] text-muted-foreground">{timeAgo(post.created_at)}</p>
         </div>
+        {user && user.id !== post.user_id && friendStatus !== 'accepted' && (
+          <motion.button
+            onClick={addFriend} disabled={addingFriend || friendStatus === 'pending'}
+            className={`text-xs px-3 py-1.5 rounded-full font-medium ${
+              friendStatus === 'pending'
+                ? 'bg-muted/60 text-muted-foreground'
+                : 'bg-gradient-to-r from-primary to-secondary text-primary-foreground'
+            }`}
+            whileTap={{ scale: 0.93 }}
+          >
+            {friendStatus === 'pending' ? '已申请' : '+ 好友'}
+          </motion.button>
+        )}
+        {user && user.id !== post.user_id && friendStatus === 'accepted' && (
+          <span className="text-xs px-2.5 py-1 rounded-full bg-accent/15 text-accent">好友</span>
+        )}
       </div>
 
       {/* 内容 */}
       <div className="px-4 pb-3">
-        <p className="text-foreground text-sm leading-relaxed">{post.content}</p>
+        <p className="text-foreground text-[15px] leading-[1.55] whitespace-pre-wrap break-words">{post.content}</p>
       </div>
 
       {/* 图片 */}
       {post.image_url && (
-        <div className="mx-4 mb-3 aspect-[4/3] rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/10">
+        <div className="aspect-[4/3] bg-gradient-to-br from-primary/15 to-secondary/10">
           <img src={post.image_url} alt="" className="w-full h-full object-cover" />
         </div>
       )}
 
       {/* 互动栏 */}
-      <div className="px-4 pb-4 flex items-center justify-between">
-        <div className="flex items-center gap-5">
-          <motion.button className="flex items-center gap-1.5 relative" onClick={handleLike} whileTap={{ scale: 0.85 }}>
-            <motion.div animate={liked ? { scale: [1, 1.4, 1] } : {}} transition={{ duration: 0.35, ease: "easeOut" }}>
-              {liked ? (
-                <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6 2 2 6 2 10c0 2 1 4 3 5.5L12 22l7-6.5c2-1.5 3-3.5 3-5.5 0-4-4-8-10-8z" /></svg>
-              ) : (
-                <svg className="w-5 h-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2C6 2 2 6 2 10c0 2 1 4 3 5.5L12 22l7-6.5c2-1.5 3-3.5 3-5.5 0-4-4-8-10-8z" /></svg>
-              )}
-            </motion.div>
-            <span className={`text-sm ${liked ? "text-primary" : "text-muted-foreground"}`}>{likesCount}</span>
-            <BloomAnimation isActive={showBloom} onComplete={() => setShowBloom(false)} />
+      <div className="px-2 pt-2 pb-1 flex items-center border-t border-border/30">
+        <motion.button
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl relative active:bg-muted/40 transition-colors"
+          onClick={handleLike} whileTap={{ scale: 0.96 }}
+        >
+          <motion.div animate={liked ? { scale: [1, 1.35, 1] } : {}} transition={{ duration: 0.35 }}>
+            {liked ? (
+              <svg className="w-[18px] h-[18px] text-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6 2 2 6 2 10c0 2 1 4 3 5.5L12 22l7-6.5c2-1.5 3-3.5 3-5.5 0-4-4-8-10-8z" /></svg>
+            ) : (
+              <svg className="w-[18px] h-[18px] text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 2C6 2 2 6 2 10c0 2 1 4 3 5.5L12 22l7-6.5c2-1.5 3-3.5 3-5.5 0-4-4-8-10-8z" /></svg>
+            )}
+          </motion.div>
+          <span className={`text-[13px] ${liked ? "text-primary font-medium" : "text-muted-foreground"}`}>{likesCount}</span>
+          <BloomAnimation isActive={showBloom} onComplete={() => setShowBloom(false)} />
+        </motion.button>
+
+        <motion.button
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl active:bg-muted/40 transition-colors"
+          onClick={loadComments} whileTap={{ scale: 0.96 }}
+        >
+          <svg className="w-[18px] h-[18px] text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+          <span className="text-[13px] text-muted-foreground">{commentsCount}</span>
+        </motion.button>
+
+        {user && user.id !== post.user_id && (
+          <motion.button
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl active:bg-muted/40 transition-colors"
+            onClick={() => setShowDM(true)} whileTap={{ scale: 0.96 }}
+          >
+            <svg className="w-[18px] h-[18px] text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
+            <span className="text-[13px] text-muted-foreground">私信</span>
           </motion.button>
-
-          <motion.button className="flex items-center gap-1.5" onClick={loadComments} whileTap={{ scale: 0.9 }}>
-            <svg className="w-5 h-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-            <span className="text-sm text-muted-foreground">{comments.length || '评论'}</span>
-          </motion.button>
-
-          {user && user.id !== post.user_id && (
-            <motion.button className="flex items-center gap-1.5" onClick={() => setShowDM(true)} whileTap={{ scale: 0.9 }}>
-              <svg className="w-5 h-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
-            </motion.button>
-          )}
-
-          {user && user.id !== post.user_id && friendStatus !== 'accepted' && (
-            <motion.button
-              onClick={addFriend} disabled={addingFriend || friendStatus === 'pending'}
-              className="flex items-center gap-1"
-              whileTap={{ scale: 0.9 }}
-            >
-              {friendStatus === 'pending' ? (
-                <svg className="w-5 h-5 text-secondary/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" /></svg>
-              ) : (
-                <svg className="w-5 h-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="17" y1="11" x2="23" y2="11" /></svg>
-              )}
-            </motion.button>
-          )}
-        </div>
+        )}
       </div>
 
       <AnimatePresence>
@@ -197,22 +231,22 @@ function PostCard({ post, index, onRequireAuth }: { post: Post & { profiles?: { 
       <AnimatePresence>
         {showComments && (
           <motion.div
-            className="border-t border-border/40 p-4 space-y-3"
+            className="border-t border-border/30 px-4 py-3 space-y-2.5 bg-muted/20"
             initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
           >
             {comments.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-2">还没有评论，来说第一句话吧</p>
+              <p className="text-xs text-muted-foreground text-center py-3">还没有评论，来说第一句话吧</p>
             )}
             {comments.map(c => (
               <div key={c.id} className="flex gap-2">
                 <UserAvatar seed={c.user_id} size={6} />
-                <div className="flex-1 bg-muted/40 rounded-2xl px-3 py-2">
-                  <p className="text-xs font-medium text-foreground mb-0.5">{c.profiles?.username ?? '花间用户'}</p>
-                  <p className="text-xs text-foreground/80">{c.content}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-medium text-foreground mb-0.5">{c.username ?? '花间用户'}</p>
+                  <p className="text-[13px] text-foreground/85 leading-snug break-words">{c.content}</p>
                 </div>
               </div>
             ))}
-            <form onSubmit={submitComment} className="flex gap-2 mt-2">
+            <form onSubmit={submitComment} className="flex gap-2 pt-2">
               <UserAvatar seed={user?.id ?? 'anon'} size={7} />
               <input
                 type="text"
@@ -221,11 +255,11 @@ function PostCard({ post, index, onRequireAuth }: { post: Post & { profiles?: { 
                 placeholder={user ? "说点什么..." : "登录后发表评论"}
                 onClick={!user ? onRequireAuth : undefined}
                 readOnly={!user}
-                className="flex-1 px-3 py-2 rounded-full bg-muted/50 text-sm text-foreground placeholder:text-muted-foreground outline-none border border-transparent focus:border-primary/30 transition-colors"
+                className="flex-1 px-3.5 py-2 rounded-full bg-card text-[13px] text-foreground placeholder:text-muted-foreground outline-none border border-border/40 focus:border-primary/40 transition-colors min-w-0"
               />
               {user && (
-                <motion.button type="submit" disabled={posting || !commentText.trim()} className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0" whileTap={{ scale: 0.9 }}>
-                  <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
+                <motion.button type="submit" disabled={posting || !commentText.trim()} className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0 disabled:opacity-40" whileTap={{ scale: 0.9 }}>
+                  <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
                 </motion.button>
               )}
             </form>
@@ -381,27 +415,46 @@ export default function CommunityPage() {
 
     const { data, error } = await supabase
       .from('posts')
-      .select('*, profiles!posts_user_id_fkey(username)')
+      .select('*')
       .order('created_at', { ascending: false })
       .range(offset, offset + PAGE_SIZE - 1)
 
     if (error) console.error('[community] fetchPosts error:', error.code, error.message)
 
-    const newPosts = data ?? []
+    const newPosts = (data ?? []) as any[]
     setHasMore(newPosts.length === PAGE_SIZE)
 
-    let result = newPosts as any[]
-    if (user && result.length > 0) {
-      const { data: likes } = await supabase
-        .from('post_likes')
-        .select('post_id')
-        .eq('user_id', user.id)
-        .in('post_id', result.map((p: any) => p.id))
-      const likedSet = new Set(likes?.map(l => l.post_id) ?? [])
-      result = result.map((p: any) => ({ ...p, liked: likedSet.has(p.id) }))
+    if (newPosts.length > 0) {
+      const postIds = newPosts.map(p => p.id)
+      const userIds = Array.from(new Set(newPosts.map(p => p.user_id)))
+
+      // 并行查 用户名、评论数、当前用户点赞
+      const [profilesRes, commentsRes, likesRes] = await Promise.all([
+        supabase.from('profiles').select('id, username').in('id', userIds),
+        supabase.from('comments').select('post_id').in('post_id', postIds),
+        user
+          ? supabase.from('post_likes').select('post_id').eq('user_id', user.id).in('post_id', postIds)
+          : Promise.resolve({ data: [] as { post_id: string }[] }),
+      ])
+
+      const nameMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p.username]))
+      const commentCount: Record<string, number> = {}
+      ;(commentsRes.data ?? []).forEach((c: any) => {
+        commentCount[c.post_id] = (commentCount[c.post_id] ?? 0) + 1
+      })
+      const likedSet = new Set((likesRes.data ?? []).map((l: any) => l.post_id))
+
+      const enriched = newPosts.map(p => ({
+        ...p,
+        username: nameMap.get(p.user_id) ?? null,
+        comments_count: commentCount[p.id] ?? 0,
+        liked: likedSet.has(p.id),
+      }))
+      setPosts(prev => replace ? enriched : [...prev, ...enriched])
+    } else {
+      if (replace) setPosts([])
     }
 
-    setPosts(prev => replace ? result : [...prev, ...result])
     setLoading(false)
     setLoadingMore(false)
   }
@@ -424,30 +477,26 @@ export default function CommunityPage() {
       <BackgroundEffects density="light" />
       <Navigation />
 
-      <div className="relative z-10 pt-20 px-4">
+      <div className="relative z-10 pt-16 px-3">
         <div className="max-w-2xl mx-auto">
-          <motion.div className="mb-6" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="text-2xl font-medium text-foreground">繁花社区</h1>
-            <p className="text-sm text-muted-foreground mt-1">分享你的蜕变故事，与闺蜜一起成长</p>
+          <motion.div className="mb-4 px-1" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+            <h1 className="text-[26px] font-semibold text-foreground tracking-tight">繁花社区</h1>
+            <p className="text-[13px] text-muted-foreground mt-0.5">分享你的蜕变，与闺蜜一起成长</p>
           </motion.div>
 
-          {/* 话题频道 */}
-          <motion.div className="mb-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-medium text-foreground">热门话题</h2>
-            </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+          {/* 话题频道 — 横滚胶囊 */}
+          <motion.div className="mb-3 -mx-3 px-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
               {TOPICS.map((topic, i) => (
-                <motion.div
+                <motion.button
                   key={topic.id}
-                  className={`flex-shrink-0 w-32 p-4 rounded-2xl bg-gradient-to-br ${topic.gradient} glass cursor-pointer`}
-                  initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  onClick={() => { setShowCreatePost(true) }}
+                  className={`flex-shrink-0 px-4 py-2 rounded-full bg-gradient-to-r ${topic.gradient} text-[13px] font-medium text-foreground/90 border border-white/30`}
+                  initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleCreatePost}
                 >
-                  <p className="font-medium text-foreground text-sm mb-1">#{topic.name}</p>
-                  <p className="text-xs text-muted-foreground">{topic.count} 人参与</p>
-                </motion.div>
+                  #{topic.name}
+                </motion.button>
               ))}
             </div>
           </motion.div>
@@ -455,24 +504,24 @@ export default function CommunityPage() {
           {/* 发帖入口（已登录用户显示） */}
           {user && (
             <motion.button
-              className="w-full glass rounded-2xl p-4 flex items-center gap-3 mb-6 text-left"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+              className="w-full bg-card/70 backdrop-blur-sm rounded-full px-4 py-2.5 flex items-center gap-2.5 mb-4 text-left border border-border/40"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
               onClick={handleCreatePost}
-              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
             >
-              <UserAvatar seed={user.id} size={9} />
-              <span className="text-sm text-muted-foreground">分享今天的运动心得...</span>
-              <div className="ml-auto px-3 py-1.5 rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground text-xs font-medium flex-shrink-0">发布</div>
+              <UserAvatar seed={user.id} size={7} />
+              <span className="text-[13px] text-muted-foreground flex-1">分享今天的心情...</span>
+              <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </motion.button>
           )}
 
           {/* 帖子列表 */}
           {loading && posts.length === 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {[1, 2, 3].map(i => (
-                <div key={i} className="glass rounded-3xl p-4 animate-pulse">
+                <div key={i} className="bg-card/70 border border-border/40 rounded-2xl p-4 animate-pulse">
                   <div className="flex gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full bg-muted" />
+                    <div className="w-9 h-9 rounded-full bg-muted" />
                     <div className="flex-1"><div className="h-3 bg-muted rounded w-24 mb-2" /><div className="h-2 bg-muted rounded w-16" /></div>
                   </div>
                   <div className="space-y-2"><div className="h-3 bg-muted rounded" /><div className="h-3 bg-muted rounded w-4/5" /></div>

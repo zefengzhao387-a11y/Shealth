@@ -352,14 +352,19 @@ function FriendsModal({ onClose }: { onClose: () => void }) {
     if (!user) return
     const { data } = await supabase
       .from('friendships')
-      .select('id, status, requester_id, addressee_id, requester:profiles!friendships_requester_id_fkey(id,username), addressee:profiles!friendships_addressee_id_fkey(id,username)')
+      .select('id, status, requester_id, addressee_id')
       .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
       .eq('status', 'accepted')
-    if (data) {
+    if (data && data.length > 0) {
+      const otherIds = data.map((f: any) => f.requester_id === user.id ? f.addressee_id : f.requester_id)
+      const { data: profs } = await supabase.from('profiles').select('id, username').in('id', otherIds)
+      const map = new Map((profs ?? []).map((p: any) => [p.id, p.username]))
       setFriends(data.map((f: any) => {
-        const other = f.requester_id === user.id ? f.addressee : f.requester
-        return { id: other.id, username: other.username, friendship_id: f.id }
+        const otherId = f.requester_id === user.id ? f.addressee_id : f.requester_id
+        return { id: otherId, username: map.get(otherId) ?? null, friendship_id: f.id }
       }))
+    } else {
+      setFriends([])
     }
   }
 
@@ -367,13 +372,18 @@ function FriendsModal({ onClose }: { onClose: () => void }) {
     if (!user) return
     const { data } = await supabase
       .from('friendships')
-      .select('id, requester:profiles!friendships_requester_id_fkey(id,username)')
+      .select('id, requester_id')
       .eq('addressee_id', user.id)
       .eq('status', 'pending')
-    if (data) {
+    if (data && data.length > 0) {
+      const { data: profs } = await supabase
+        .from('profiles').select('id, username').in('id', data.map((f: any) => f.requester_id))
+      const map = new Map((profs ?? []).map((p: any) => [p.id, p.username]))
       setPendingIn(data.map((f: any) => ({
-        id: f.requester.id, username: f.requester.username, friendship_id: f.id,
+        id: f.requester_id, username: map.get(f.requester_id) ?? null, friendship_id: f.id,
       })))
+    } else {
+      setPendingIn([])
     }
   }
 
@@ -392,26 +402,30 @@ function FriendsModal({ onClose }: { onClose: () => void }) {
       .neq('id', user.id)
       .limit(10)
 
-    if (profiles) {
+    if (profiles && profiles.length > 0) {
       const ids = profiles.map((p: any) => p.id)
-      const { data: fs } = await supabase
-        .from('friendships')
-        .select('id, status, requester_id, addressee_id')
-        .or(ids.map((id: string) => `and(requester_id.eq.${user.id},addressee_id.eq.${id}),and(requester_id.eq.${id},addressee_id.eq.${user.id})`).join(','))
+      // 两次简单查询代替复杂 OR
+      const [out, inn] = await Promise.all([
+        supabase.from('friendships').select('id, status, addressee_id')
+          .eq('requester_id', user.id).in('addressee_id', ids),
+        supabase.from('friendships').select('id, status, requester_id')
+          .eq('addressee_id', user.id).in('requester_id', ids),
+      ])
 
       setSearchResults(profiles.map((p: any) => {
-        const f = fs?.find((x: any) =>
-          (x.requester_id === user.id && x.addressee_id === p.id) ||
-          (x.requester_id === p.id && x.addressee_id === user.id)
-        )
+        const outF = out.data?.find((x: any) => x.addressee_id === p.id)
+        const inF = inn.data?.find((x: any) => x.requester_id === p.id)
+        const f = outF || inF
         let status: FriendStatus = 'none'
         if (f) {
           if (f.status === 'accepted') status = 'accepted'
-          else if (f.requester_id === user.id) status = 'pending_sent'
+          else if (outF) status = 'pending_sent'
           else status = 'pending_received'
         }
         return { ...p, status, friendship_id: f?.id }
       }))
+    } else {
+      setSearchResults([])
     }
     setLoading(false)
   }
@@ -694,48 +708,46 @@ export default function ProfilePage() {
 
       <Navigation />
 
-      <div className="relative z-10 pt-20 px-4">
+      <div className="relative z-10 pt-16 px-3">
         <div className="max-w-2xl mx-auto">
 
-          {/* 个人头部 */}
-          <motion.div className="mb-6" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="relative rounded-3xl overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-secondary/10 to-lilac/20" />
-              <div className="relative p-5">
-                <div className="flex items-center gap-4 mb-4">
-                  <motion.div className="relative" whileHover={{ scale: 1.05 }}>
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/50 to-secondary/50 flex items-center justify-center">
-                      <svg className="w-10 h-10 text-primary-foreground" viewBox="0 0 24 24" fill="currentColor">
-                        <circle cx="12" cy="8" r="4" /><path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" />
-                      </svg>
-                    </div>
+          {/* 个人头部 — 紧凑+清爽 */}
+          <motion.div className="mb-5" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-primary/15 via-secondary/8 to-lilac/15 border border-white/30">
+              <div className="p-4">
+                <div className="flex items-center gap-3.5">
+                  <motion.div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/60 to-secondary/60 flex items-center justify-center flex-shrink-0 shadow-lg" whileTap={{ scale: 0.95 }}>
+                    <svg className="w-8 h-8 text-white/90" viewBox="0 0 24 24" fill="currentColor">
+                      <circle cx="12" cy="8" r="4" /><path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" />
+                    </svg>
                   </motion.div>
-                  <div className="flex-1">
-                    <h2 className="text-xl font-medium text-foreground">{profile?.username ?? '花间仙子'}</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">@{profile?.username ?? '花间仙子'}</p>
-                    <div className="mt-2 h-2 bg-muted/50 rounded-full overflow-hidden">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-[18px] font-semibold text-foreground truncate">{profile?.username ?? '花间仙子'}</h2>
+                    <p className="text-[11px] text-muted-foreground mb-1.5">Lv.{Math.floor(totalPoints / 100) + 1} · 还差 {100 - (totalPoints % 100)} 分</p>
+                    <div className="h-1.5 bg-white/40 rounded-full overflow-hidden">
                       <motion.div
                         className="h-full bg-gradient-to-r from-primary to-secondary rounded-full"
                         initial={{ width: 0 }}
                         animate={{ width: `${Math.min((totalPoints % 100), 100)}%` }}
-                        transition={{ duration: 1, delay: 0.5 }}
+                        transition={{ duration: 1, delay: 0.3 }}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">距下一级还差 {100 - (totalPoints % 100)} 运动分</p>
                   </div>
                 </div>
 
-                {/* 统计卡片 */}
-                <div className="grid grid-cols-3 gap-3 mb-4">
+                {/* 统计 — 横向数字 */}
+                <div className="grid grid-cols-3 gap-2 mt-4">
                   {[
-                    { label: "连续打卡", value: `${streak} 天` },
-                    { label: "运动时长", value: `${totalMinutes} 分` },
-                    { label: "运动分", value: totalPoints.toString() },
+                    { label: "连续打卡", value: streak.toString(), unit: "天" },
+                    { label: "运动时长", value: totalMinutes.toString(), unit: "分" },
+                    { label: "运动分", value: totalPoints.toString(), unit: "" },
                   ].map(stat => (
-                    <motion.div key={stat.label} className="glass rounded-2xl p-3 text-center" whileHover={{ scale: 1.02, y: -2 }}>
-                      <p className="text-lg font-medium text-foreground">{stat.value}</p>
-                      <p className="text-xs text-muted-foreground">{stat.label}</p>
-                    </motion.div>
+                    <div key={stat.label} className="bg-white/30 backdrop-blur-sm rounded-xl py-2.5 text-center">
+                      <p className="text-[18px] font-semibold text-foreground leading-tight">
+                        {stat.value}<span className="text-[11px] font-normal text-muted-foreground ml-0.5">{stat.unit}</span>
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{stat.label}</p>
+                    </div>
                   ))}
                 </div>
 
@@ -743,14 +755,13 @@ export default function ProfilePage() {
                 <motion.button
                   onClick={handleCheckin}
                   disabled={todayCheckedIn || checkingIn}
-                  className={`w-full py-3 rounded-2xl font-medium text-sm transition-all relative overflow-hidden ${
+                  className={`w-full py-2.5 mt-3 rounded-xl font-medium text-[13px] transition-all ${
                     todayCheckedIn || checkInSuccess
-                      ? 'bg-sage/20 text-accent'
+                      ? 'bg-accent/15 text-accent'
                       : 'bg-gradient-to-r from-primary to-secondary text-primary-foreground'
                   }`}
-                  whileHover={!todayCheckedIn ? { scale: 1.01 } : {}}
                   whileTap={!todayCheckedIn ? { scale: 0.98 } : {}}
-                  style={!todayCheckedIn ? { boxShadow: "0 4px 20px rgba(255,182,193,0.35)" } : {}}
+                  style={!todayCheckedIn ? { boxShadow: "0 4px 16px rgba(255,182,193,0.3)" } : {}}
                 >
                   {checkInSuccess ? '✓ 打卡成功！+10 运动分' : todayCheckedIn ? '✓ 今日已打卡' : checkingIn ? '打卡中...' : '今日打卡'}
                 </motion.button>
@@ -759,9 +770,9 @@ export default function ProfilePage() {
           </motion.div>
 
           {/* 维度数据 */}
-          <motion.div className="mb-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-medium text-foreground">身体维度</h3>
+          <motion.div className="mb-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
+            <div className="flex items-center justify-between mb-2.5 px-1">
+              <h3 className="text-[15px] font-semibold text-foreground">身体维度</h3>
               <motion.button
                 className="text-xs text-primary flex items-center gap-1"
                 onClick={() => setShowDimModal(true)}
@@ -829,12 +840,12 @@ export default function ProfilePage() {
           </motion.div>
 
           {/* 成就徽章 */}
-          <motion.div className="mb-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-medium text-foreground">成就徽章</h3>
-              <span className="text-xs text-muted-foreground">{unlockedAchievements.length}/{ACHIEVEMENTS.length}</span>
+          <motion.div className="mb-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+            <div className="flex items-center justify-between mb-2.5 px-1">
+              <h3 className="text-[15px] font-semibold text-foreground">成就徽章</h3>
+              <span className="text-[11px] text-muted-foreground">{unlockedAchievements.length}/{ACHIEVEMENTS.length}</span>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               {ACHIEVEMENTS.map((ach, i) => (
                 <div key={ach.id} className="relative flex justify-center">
                   <AchievementBadge ach={ach} unlocked={unlockedAchievements.includes(ach.id)} index={i} />
@@ -843,56 +854,51 @@ export default function ProfilePage() {
             </div>
           </motion.div>
 
-          {/* 好友入口 */}
-          <motion.div className="mb-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
+          {/* 社交快捷区 — 好友 + 私信并列 */}
+          <motion.div className="mb-4 grid grid-cols-2 gap-2.5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
             <motion.button
               onClick={() => setShowFriends(true)}
-              className="w-full glass rounded-2xl p-4 flex items-center gap-3"
-              whileHover={{ scale: 1.01, y: -1 }} whileTap={{ scale: 0.98 }}
+              className="relative bg-card/70 backdrop-blur-sm border border-border/40 rounded-2xl p-3.5 flex flex-col items-start gap-2"
+              whileTap={{ scale: 0.97 }}
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-secondary/30 to-primary/30 flex items-center justify-center">
-                <svg className="w-5 h-5 text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-secondary/30 to-primary/30 flex items-center justify-center">
+                <svg className="w-4 h-4 text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
               </div>
-              <div className="flex-1 text-left">
-                <p className="text-sm font-medium text-foreground">我的好友</p>
-                <p className="text-xs text-muted-foreground">搜索用户 · 管理好友</p>
+              <div className="text-left">
+                <p className="text-[13px] font-medium text-foreground">我的好友</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">搜索 · 管理</p>
               </div>
               {pendingCount > 0 && (
-                <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-medium">
+                <span className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] flex items-center justify-center font-medium">
                   {pendingCount}
                 </span>
               )}
-              <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
             </motion.button>
-          </motion.div>
 
-          {/* 私信箱入口 */}
-          <motion.div className="mb-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.38 }}>
             <Link href="/messages">
               <motion.div
-                className="glass rounded-2xl p-4 flex items-center gap-3"
-                whileHover={{ scale: 1.01, y: -1 }} whileTap={{ scale: 0.98 }}
+                className="bg-card/70 backdrop-blur-sm border border-border/40 rounded-2xl p-3.5 flex flex-col items-start gap-2 h-full"
+                whileTap={{ scale: 0.97 }}
               >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" />
                   </svg>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">私信箱</p>
-                  <p className="text-xs text-muted-foreground">查看好友私信</p>
+                <div className="text-left">
+                  <p className="text-[13px] font-medium text-foreground">私信箱</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">好友私信</p>
                 </div>
-                <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
               </motion.div>
             </Link>
           </motion.div>
 
           {/* 设置 */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
-            <div className="glass rounded-2xl overflow-hidden">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+            <div className="bg-card/70 backdrop-blur-sm border border-border/40 rounded-2xl overflow-hidden">
               {[
                 { label: "消息通知", icon: <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" />, onClick: () => setShowNotif(true) },
                 { label: "隐私设置", icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />, onClick: () => setShowPrivacy(true) },
@@ -902,16 +908,16 @@ export default function ProfilePage() {
                 <motion.button
                   key={item.label}
                   onClick={item.onClick}
-                  className={`w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors ${i !== arr.length - 1 ? 'border-b border-border/30' : ''}`}
-                  whileTap={{ scale: 0.98 }}
+                  className={`w-full flex items-center justify-between px-4 py-3 active:bg-muted/40 transition-colors ${i !== arr.length - 1 ? 'border-b border-border/30' : ''}`}
+                  whileTap={{ scale: 0.99 }}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">{item.icon}</svg>
+                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                      <svg className="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">{item.icon}</svg>
                     </div>
-                    <span className="text-sm text-foreground">{item.label}</span>
+                    <span className="text-[14px] text-foreground">{item.label}</span>
                   </div>
-                  <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+                  <svg className="w-4 h-4 text-muted-foreground/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
                 </motion.button>
               ))}
             </div>
