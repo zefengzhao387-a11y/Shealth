@@ -15,23 +15,56 @@ const VRMCoach = dynamic(
   { ssr: false, loading: () => null }
 )
 
-// AI 教练互动区
+// ── Grain overlay ──────────────────────────────────────────
+function GrainOverlay() {
+  return <div className="grain-overlay" aria-hidden />
+}
+
+// ── Marquee band ───────────────────────────────────────────
+function MarqueeBand() {
+  const items = [
+    "花间塑 FloraMotion",
+    "AI 智能教练",
+    "柔和悦动",
+    "繁花社区",
+    "经期舒缓",
+    "普拉提塑形",
+    "镜心成长",
+    "你的专属闺蜜",
+  ]
+  const repeated = [...items, ...items]
+
+  return (
+    <div className="relative overflow-hidden border-y border-border/40 py-3.5 bg-gradient-to-r from-primary/3 via-secondary/3 to-accent/3">
+      <div className="flex animate-marquee gap-0 whitespace-nowrap select-none">
+        {repeated.map((item, i) => (
+          <span
+            key={i}
+            className="inline-flex items-center gap-5 px-6 text-[11px] font-medium tracking-[0.22em] uppercase text-muted-foreground/60"
+          >
+            {item}
+            <span className="w-1 h-1 rounded-full bg-primary/30 flex-shrink-0" />
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── AI 教练头像区 ──────────────────────────────────────────
 function AICoachArea() {
   return (
     <motion.div
-      className="relative w-64 h-64 md:w-80 md:h-80"
+      className="relative w-52 h-52 md:w-64 md:h-64"
       initial={{ scale: 0.8, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
+      transition={{ duration: 1, delay: 0.6, ease: "easeOut" }}
     >
-      {/* 外层光环 */}
       <motion.div
         className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20"
-        animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }}
+        animate={{ scale: [1, 1.08, 1], opacity: [0.5, 0.8, 0.5] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       />
-      
-      {/* 中层毛玻璃 */}
       <div className="absolute inset-4 glass rounded-full overflow-hidden">
         <motion.div
           className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10"
@@ -39,28 +72,23 @@ function AICoachArea() {
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
         />
       </div>
-      
-      {/* 核心区域 - VRM 3D 教练 */}
       <motion.div
         className="absolute inset-2 rounded-full overflow-hidden"
         animate={{ scale: [1, 1.02, 1] }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
       >
         <VRMCoach view="circle" />
-        {/* 呼吸光晕叠加 */}
         <motion.div
           className="absolute inset-0 bg-gradient-to-t from-primary/20 via-transparent to-secondary/10 pointer-events-none"
           animate={{ opacity: [0.3, 0.5, 0.3] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
         />
       </motion.div>
-      
-      {/* 在线状态标签 */}
       <motion.div
-        className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full glass-strong text-xs text-foreground flex items-center gap-1.5"
+        className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full glass-strong text-xs text-foreground flex items-center gap-1.5 whitespace-nowrap"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1 }}
+        transition={{ delay: 1.2 }}
       >
         <motion.span
           className="w-2 h-2 rounded-full bg-green-400"
@@ -69,33 +97,25 @@ function AICoachArea() {
         />
         AI 教练在线
       </motion.div>
-      
-      {/* 散落的光点 */}
-      {[...Array(8)].map((_, i) => (
-        <Sparkle
-          key={i}
-          x={20 + (i % 4) * 20}
-          y={20 + Math.floor(i / 4) * 60}
-          delay={i * 0.3}
-        />
+      {[...Array(6)].map((_, i) => (
+        <Sparkle key={i} x={15 + (i % 3) * 30} y={15 + Math.floor(i / 3) * 60} delay={i * 0.4} />
       ))}
     </motion.div>
   )
 }
 
-// Hero 区 CTA 按钮
+// ── Hero CTA 按钮 ──────────────────────────────────────────
 function HeroButton() {
   return (
     <Link href="/home">
       <motion.button
-        className="relative group px-8 py-4 rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium overflow-hidden"
-        whileHover={{ scale: 1.03 }}
-        whileTap={{ scale: 0.98 }}
+        className="relative group px-8 py-4 rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium overflow-hidden text-sm md:text-base"
+        whileHover={{ scale: 1.04 }}
+        whileTap={{ scale: 0.97 }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.8 }}
+        transition={{ duration: 0.6, delay: 0.9 }}
       >
-        {/* 水波纹效果 */}
         <motion.span
           className="absolute inset-0 rounded-full bg-white/20"
           initial={{ scale: 0, opacity: 0.6 }}
@@ -106,168 +126,140 @@ function HeroButton() {
           className="absolute inset-0 rounded-full bg-white/20"
           initial={{ scale: 0, opacity: 0.6 }}
           animate={{ scale: 2.5, opacity: 0 }}
-          transition={{ duration: 2, delay: 0.5, repeat: Infinity, ease: "easeOut" }}
+          transition={{ duration: 2, delay: 0.6, repeat: Infinity, ease: "easeOut" }}
         />
-        
-        {/* 发光效果 */}
-        <motion.span
-          className="absolute inset-0 rounded-full animate-pulse-glow"
-        />
-        
         <span className="relative z-10 flex items-center gap-2">
           开启花间之旅
           <motion.span
             animate={{ x: [0, 4, 0] }}
             transition={{ duration: 1.5, repeat: Infinity }}
-          >
-            →
-          </motion.span>
+          >→</motion.span>
         </span>
       </motion.button>
     </Link>
   )
 }
 
-// Hero 区
+// ── Hero 区（awwwards 大字排版） ────────────────────────────
 function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
   return (
-    <div className="relative h-full flex flex-col items-center justify-center overflow-hidden px-6 pt-20">
+    <div className="relative h-full flex flex-col overflow-hidden px-6 md:px-12 pt-20">
       {/* 流动渐变背景 */}
-      <div className="absolute inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 animate-gradient" />
+      <div className="absolute inset-0 bg-gradient-to-br from-cream via-peach/8 to-lilac/15 animate-gradient" />
 
-      {/* 飘落的花瓣 */}
-      {[...Array(12)].map((_, i) => (
-        <Petal
-          key={i}
-          delay={i * 1.5}
-          x={(i * 8.3) % 100}
-          size={["sm", "md", "lg"][i % 3] as "sm" | "md" | "lg"}
-        />
+      {/* 飘落花瓣（更稀疏） */}
+      {[...Array(7)].map((_, i) => (
+        <Petal key={i} delay={i * 2.2} x={(i * 14) % 100} size={["sm", "md"][i % 2] as "sm" | "md"} />
       ))}
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
-        {/* 左侧文案 */}
+      <div className="relative z-10 flex-1 flex flex-col justify-center max-w-7xl mx-auto w-full">
+        {/* Eyebrow label */}
         <motion.div
-          className="text-center md:text-left"
-          initial={{ opacity: 0, x: -30 }}
+          className="flex items-center gap-3 mb-5 md:mb-7"
+          initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <motion.h1
-            className="text-3xl md:text-4xl lg:text-5xl font-medium leading-relaxed text-balance"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+          <motion.div
+            className="h-px bg-primary/50"
+            initial={{ width: 0 }}
+            animate={{ width: 44 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+          />
+          <span className="text-[10px] md:text-xs tracking-[0.35em] uppercase text-primary/60 font-medium">
+            女性专属 AI 健身教练
+          </span>
+        </motion.div>
+
+        {/* 超大品牌名 */}
+        <div className="overflow-hidden mb-1 md:mb-2">
+          <motion.div
+            initial={{ y: "110%" }}
+            animate={{ y: 0 }}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
           >
-            <span className="font-brand text-4xl md:text-5xl lg:text-6xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent inline-block mb-2">
+            <span className="font-brand block text-[22vw] sm:text-[18vw] md:text-[15vw] lg:text-[13vw] leading-[0.82] bg-gradient-to-br from-primary via-[oklch(0.72_0.11_350)] to-secondary bg-clip-text text-transparent select-none">
               花间塑
             </span>
-            <span className="text-2xl md:text-3xl lg:text-4xl font-semibold ml-3 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              FloraMotion
-            </span>
-            <br />
-            <span className="text-foreground/80 text-2xl md:text-3xl lg:text-4xl">
-              你的专属 AI 闺蜜教练
-            </span>
-          </motion.h1>
-
-          <motion.p
-            className="mt-6 text-muted-foreground max-w-md mx-auto md:mx-0 leading-relaxed"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-          >
-            懂你每一个阶段的身体节奏，用最温柔的方式陪伴你变得更好。
-            如花般绽放，如风般轻盈。
-          </motion.p>
-
-          <div className="mt-8">
-            <HeroButton />
-          </div>
-        </motion.div>
-
-        {/* 右侧 AI 教练区 */}
-        <div className="flex justify-center">
-          <AICoachArea />
+          </motion.div>
         </div>
-      </div>
 
-      {/* 向下滚动提示 */}
-      <motion.button
-        onClick={onScrollDown}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors z-10"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.4 }}
-      >
-        <span className="text-xs tracking-widest">探索更多</span>
+        {/* 下半区：文案 + AI 教练 */}
+        <div className="flex items-end justify-between gap-6 md:gap-12">
+          <motion.div
+            className="flex-1"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.55 }}
+          >
+            <p className="text-xl md:text-2xl lg:text-3xl font-light text-foreground/50 mb-2 tracking-widest">
+              FloraMotion
+            </p>
+            <p className="text-sm md:text-base text-muted-foreground max-w-xs md:max-w-sm leading-relaxed mb-7">
+              懂你每一个阶段的身体节奏，用最温柔的方式陪伴你变得更好。如花般绽放，如风般轻盈。
+            </p>
+            <HeroButton />
+          </motion.div>
+
+          <motion.div
+            className="hidden md:flex flex-shrink-0 pb-2"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.65, ease: "easeOut" }}
+          >
+            <AICoachArea />
+          </motion.div>
+        </div>
+
+        {/* 分隔线 */}
         <motion.div
-          animate={{ y: [0, 5, 0] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          className="mt-7 md:mt-9 h-px bg-gradient-to-r from-transparent via-border to-transparent"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 1.1, delay: 0.85 }}
+        />
+
+        {/* 底部数据栏 + 探索按钮 */}
+        <motion.div
+          className="flex items-center justify-between py-4 md:py-5"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 1.1 }}
         >
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M6 9l6 6 6-6" />
-          </svg>
+          <div className="flex items-center gap-8 md:gap-12">
+            {[
+              { label: "活跃用户", value: "240万+" },
+              { label: "精选课程", value: "800+" },
+              { label: "用户好评", value: "4.9★" },
+            ].map((stat) => (
+              <div key={stat.label} className="hidden sm:block">
+                <div className="text-base md:text-lg font-semibold text-foreground">{stat.value}</div>
+                <div className="text-[10px] md:text-xs text-muted-foreground mt-0.5 tracking-wide">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={onScrollDown}
+            className="flex flex-col items-center gap-1 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+          >
+            <span className="text-[10px] tracking-[0.3em] uppercase">探索更多</span>
+            <motion.div
+              animate={{ y: [0, 4, 0] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </motion.div>
+          </button>
         </motion.div>
-      </motion.button>
+      </div>
     </div>
   )
 }
 
-// 特色功能卡片
-function FeatureCard({ 
-  title, 
-  description, 
-  icon, 
-  delay,
-  gradient,
-  href
-}: { 
-  title: string
-  description: string
-  icon: React.ReactNode
-  delay: number
-  gradient: string
-  href: string
-}) {
-  const [isHovered, setIsHovered] = useState(false)
-
-  return (
-    <Link href={href}>
-      <motion.div
-        className={`relative p-6 md:p-8 rounded-3xl glass overflow-hidden cursor-pointer h-full ${gradient}`}
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6, delay }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        whileHover={{ scale: 1.02, y: -5 }}
-      >
-        <Ripple isActive={isHovered} />
-        
-        <motion.div
-          className="relative z-10"
-          animate={isHovered ? { y: -3 } : { y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <motion.div
-            className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mb-4"
-            animate={isHovered ? { scale: 1.1, rotate: 5 } : { scale: 1, rotate: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {icon}
-          </motion.div>
-          
-          <h3 className="text-lg md:text-xl font-medium mb-2 text-foreground">{title}</h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
-        </motion.div>
-      </motion.div>
-    </Link>
-  )
-}
-
-// 特色功能区 - 四大核心模块
+// ── 特色功能区（editorial 编号行） ─────────────────────────
 function FeaturesSection() {
   const features = [
     {
@@ -280,8 +272,8 @@ function FeaturesSection() {
           <path d="M6 21v-1a6 6 0 0 1 12 0v1" />
         </svg>
       ),
-      gradient: "bg-gradient-to-br from-peach/30 to-transparent",
-      href: "/home"
+      gradient: "bg-gradient-to-br from-peach/40 to-primary/10",
+      href: "/home",
     },
     {
       title: "柔和悦动专区",
@@ -293,8 +285,8 @@ function FeaturesSection() {
           <path d="M2 12l10 5 10-5" />
         </svg>
       ),
-      gradient: "bg-gradient-to-br from-lilac/30 to-transparent",
-      href: "/workout"
+      gradient: "bg-gradient-to-br from-lilac/40 to-secondary/10",
+      href: "/workout",
     },
     {
       title: "繁花社区",
@@ -302,13 +294,11 @@ function FeaturesSection() {
       icon: (
         <svg className="w-7 h-7 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5" />
-          <path d="M8.5 8.5v.01" />
-          <path d="M16 15.5v.01" />
-          <path d="M12 12v.01" />
+          <path d="M8.5 8.5v.01M16 15.5v.01M12 12v.01" />
         </svg>
       ),
-      gradient: "bg-gradient-to-br from-sage/30 to-transparent",
-      href: "/community"
+      gradient: "bg-gradient-to-br from-sage/40 to-accent/10",
+      href: "/community",
     },
     {
       title: "镜心个人中心",
@@ -319,36 +309,72 @@ function FeaturesSection() {
           <circle cx="12" cy="7" r="4" />
         </svg>
       ),
-      gradient: "bg-gradient-to-br from-primary/20 to-transparent",
-      href: "/profile"
-    }
+      gradient: "bg-gradient-to-br from-primary/20 to-peach/10",
+      href: "/profile",
+    },
   ]
 
   return (
-    <section id="features" className="relative py-24 px-6 overflow-hidden">
-      {/* 背景装饰 */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-secondary/5 to-transparent" />
-      
+    <section id="features" className="relative py-20 md:py-28 px-6 md:px-12 overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-secondary/4 to-transparent" />
+
       <div className="relative z-10 max-w-6xl mx-auto">
+        {/* Section header */}
         <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          className="flex items-baseline justify-between pb-5 border-b border-border/30 mb-2"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.5 }}
         >
-          <h2 className="text-2xl md:text-3xl font-medium text-foreground mb-4">
-            四大核心模块
-          </h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            每一个功能都在倾听你的需要，陪伴你如花绽放
-          </p>
+          <h2 className="text-xl md:text-2xl font-medium text-foreground">四大核心模块</h2>
+          <span className="text-muted-foreground/40 text-xs font-mono tracking-widest">功能 · 04</span>
         </motion.div>
-        
-        {/* 2x2 网格 */}
-        <div className="grid md:grid-cols-2 gap-6 md:gap-8">
+
+        {/* Editorial numbered rows */}
+        <div className="divide-y divide-border/20">
           {features.map((feature, i) => (
-            <FeatureCard key={feature.title} {...feature} delay={0.1 + i * 0.1} />
+            <motion.div
+              key={feature.title}
+              className="group"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.5, delay: i * 0.08 }}
+            >
+              <Link href={feature.href}>
+                <div className="flex items-center gap-5 md:gap-10 py-7 md:py-9 cursor-pointer">
+                  {/* Large number */}
+                  <span className="text-4xl md:text-6xl font-bold text-primary/8 group-hover:text-primary/18 transition-colors w-12 md:w-20 flex-shrink-0 font-mono text-center leading-none select-none">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+
+                  {/* Icon pill */}
+                  <div className={`w-11 h-11 md:w-13 md:h-13 rounded-2xl ${feature.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+                    {feature.icon}
+                  </div>
+
+                  {/* Text */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base md:text-xl font-medium text-foreground mb-1 group-hover:text-primary transition-colors duration-200">
+                      {feature.title}
+                    </h3>
+                    <p className="text-xs md:text-sm text-muted-foreground leading-relaxed line-clamp-2 max-w-lg">
+                      {feature.description}
+                    </p>
+                  </div>
+
+                  {/* Arrow */}
+                  <motion.div
+                    className="hidden md:flex w-9 h-9 rounded-full border border-border/30 items-center justify-center flex-shrink-0 group-hover:border-primary/50 group-hover:bg-primary/5 transition-all duration-200"
+                  >
+                    <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  </motion.div>
+                </div>
+              </Link>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -356,7 +382,7 @@ function FeaturesSection() {
   )
 }
 
-// 亮点功能展示
+// ── 亮点功能（bento grid） ─────────────────────────────────
 function HighlightsSection() {
   const highlights = [
     {
@@ -367,6 +393,7 @@ function HighlightsSection() {
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
         </svg>
       ),
+      large: true,
     },
     {
       title: "AI 流光体态纠正",
@@ -394,8 +421,7 @@ function HighlightsSection() {
         <svg className="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
           <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
       ),
     },
@@ -423,42 +449,41 @@ function HighlightsSection() {
   ]
 
   return (
-    <section className="relative py-24 px-6 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent" />
-      
+    <section className="relative py-20 md:py-28 px-6 md:px-12 overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/4 via-transparent to-secondary/4" />
+
       <div className="relative z-10 max-w-6xl mx-auto">
         <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          className="flex items-baseline justify-between pb-5 border-b border-border/30 mb-10"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.5 }}
         >
-          <h2 className="text-2xl md:text-3xl font-medium text-foreground mb-4">
-            为你量身定制的温柔功能
-          </h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            每一个细节都在呵护你
-          </p>
+          <h2 className="text-xl md:text-2xl font-medium text-foreground">为你量身定制的温柔功能</h2>
+          <span className="text-muted-foreground/40 text-xs font-mono tracking-widest">特色 · 06</span>
         </motion.div>
-        
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        {/* Bento grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
           {highlights.map((item, i) => (
             <motion.div
               key={item.title}
-              className="glass rounded-2xl p-6 flex items-start gap-4"
+              className={`glass rounded-2xl p-5 md:p-6 flex flex-col gap-4 ${
+                item.large ? "col-span-2 md:col-span-1 md:row-span-2" : ""
+              }`}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              whileHover={{ scale: 1.02, y: -3 }}
+              transition={{ delay: i * 0.07, duration: 0.5 }}
+              whileHover={{ scale: 1.025, y: -4 }}
             >
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-secondary/15 flex items-center justify-center flex-shrink-0">
                 {item.icon}
               </div>
               <div>
-                <h3 className="font-medium text-foreground mb-1">{item.title}</h3>
-                <p className="text-sm text-muted-foreground">{item.description}</p>
+                <h3 className="font-medium text-foreground mb-1.5 text-sm md:text-base">{item.title}</h3>
+                <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">{item.description}</p>
               </div>
             </motion.div>
           ))}
@@ -468,39 +493,41 @@ function HighlightsSection() {
   )
 }
 
-// 社群展示和数据看板
+// ── 社群展示 ───────────────────────────────────────────────
 function CommunitySection() {
   return (
-    <section className="relative py-24 px-6 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent/5 to-transparent" />
-      
+    <section className="relative py-20 md:py-28 px-6 md:px-12 overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent/4 to-transparent" />
+
       <div className="relative z-10 max-w-6xl mx-auto">
-        {/* 实时数据看板 */}
         <motion.div
-          className="mb-20"
+          className="flex items-baseline justify-between pb-5 border-b border-border/30 mb-10"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+        >
+          <h2 className="text-xl md:text-2xl font-medium text-foreground">全球花间塑社区</h2>
+          <span className="text-muted-foreground/40 text-xs font-mono tracking-widest">社区</span>
+        </motion.div>
+
+        <motion.div
+          className="mb-16"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 0.7 }}
         >
-          <div className="text-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-medium text-foreground mb-3">
-              🌍 全球花间塑社区
-            </h2>
-            <p className="text-muted-foreground">
-              数百万女性正在这里一起蜕变成更好的自己
-            </p>
-          </div>
+          <p className="text-muted-foreground mb-8 max-w-md">
+            数百万女性正在这里一起蜕变成更好的自己
+          </p>
           <LiveStatsBoard />
         </motion.div>
 
-        {/* 社群明星展示 */}
         <motion.div
-          className="mb-20"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.2 }}
+          transition={{ duration: 0.7, delay: 0.15 }}
         >
           <CommunityShowcase />
         </motion.div>
@@ -509,62 +536,89 @@ function CommunitySection() {
   )
 }
 
-// 关于我们
+// ── 关于（大引用 editorial） ───────────────────────────────
 function AboutSection() {
   return (
-    <section id="about" className="relative py-24 px-6 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-lilac/10 to-transparent" />
-      
-      <div className="relative z-10 max-w-4xl mx-auto text-center">
+    <section id="about" className="relative py-20 md:py-28 px-6 md:px-12 overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-lilac/8 to-transparent" />
+
+      <div className="relative z-10 max-w-5xl mx-auto">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          className="flex items-baseline justify-between pb-5 border-b border-border/30 mb-12"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
         >
-          <h2 className="text-2xl md:text-3xl font-medium text-foreground mb-6">
-            为什么选择<span className="font-brand text-3xl md:text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mx-1">花间塑</span>？
+          <h2 className="text-xl md:text-2xl font-medium text-foreground">
+            为什么选择
+            <span className="font-brand ml-2 text-2xl md:text-3xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              花间塑
+            </span>
           </h2>
-          
-          <div className="glass rounded-3xl p-8 md:p-12">
-            <p className="text-muted-foreground leading-relaxed mb-6">
-              我们理解，健身不只是消耗卡路里。对于女性来说，它更是一种自我关爱、身心治愈的过程。
-            </p>
-            <p className="text-muted-foreground leading-relaxed mb-6">
-              <span className="text-2xl font-medium text-foreground">花间塑</span>摒弃了传统健身 App 的硬核数据和高压训练，用柔和的色彩、温暖的 AI 陪伴、
-              精准的体态纠正，打造一个属于你的专属健身空间。
-            </p>
-            <p className="text-foreground font-medium">
-              在这里，你不需要和任何人比较，只需要成为更好的自己。
-            </p>
-          </div>
+          <span className="text-muted-foreground/40 text-xs font-mono tracking-widest">关于</span>
         </motion.div>
+
+        {/* Large editorial blockquote */}
+        <motion.blockquote
+          className="text-xl md:text-2xl lg:text-3xl font-light text-foreground/75 leading-relaxed mb-12 pl-6 md:pl-8 border-l-2 border-primary/40"
+          initial={{ opacity: 0, x: -24 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+        >
+          "健身，不只是消耗卡路里。<br />
+          对于女性来说，它更是
+          <span className="text-primary font-medium"> 自我关爱</span>
+          与
+          <span className="text-secondary font-medium"> 身心治愈</span>
+          的过程。"
+        </motion.blockquote>
+
+        <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+          <motion.p
+            className="text-muted-foreground leading-loose text-sm md:text-base"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+          >
+            花间塑摒弃了传统健身 App 的硬核数据和高压训练，用柔和的色彩、温暖的 AI 陪伴、精准的体态纠正，打造一个属于你的专属健身空间。
+          </motion.p>
+          <motion.p
+            className="text-foreground/65 leading-loose text-sm md:text-base"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+          >
+            在这里，你不需要和任何人比较，只需要成为更好的自己。每一次练习都是一朵花开，每一滴汗水都是最美的蜕变。
+          </motion.p>
+        </div>
       </div>
     </section>
   )
 }
 
-// CTA 输入区
+// ── CTA 区 ─────────────────────────────────────────────────
 function CTASection() {
   const [isFocused, setIsFocused] = useState(false)
 
   return (
-    <section id="community" className="relative py-24 px-6 overflow-hidden">
+    <section id="community" className="relative py-20 md:py-28 px-6 md:px-12 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent" />
-      
+
       <div className="relative z-10 max-w-2xl mx-auto text-center">
-        <motion.h2
-          className="text-2xl md:text-3xl font-medium text-foreground mb-4"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+        <motion.div
+          className="flex items-baseline justify-center gap-4 mb-2 pb-5 border-b border-border/20 mb-10"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
         >
-          准备好开始了吗？
-        </motion.h2>
-        
+          <h2 className="text-xl md:text-2xl font-medium text-foreground">准备好开始了吗？</h2>
+        </motion.div>
+
         <motion.p
-          className="text-muted-foreground mb-8"
+          className="text-muted-foreground mb-8 text-sm md:text-base"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
@@ -572,8 +626,7 @@ function CTASection() {
         >
           告诉 AI 教练你的想法，让我们一起开始这段旅程
         </motion.p>
-        
-        {/* 流光渐变边框输入框 */}
+
         <motion.div
           className="relative"
           initial={{ opacity: 0, y: 20 }}
@@ -581,51 +634,35 @@ function CTASection() {
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.3 }}
         >
-          {/* 流光边框 */}
           <motion.div
-            className={`absolute -inset-[2px] rounded-full bg-gradient-to-r from-primary via-secondary to-accent animate-gradient ${
-              isFocused ? 'opacity-100' : 'opacity-50'
+            className={`absolute -inset-[2px] rounded-full bg-gradient-to-r from-primary via-secondary to-accent animate-gradient transition-opacity duration-300 ${
+              isFocused ? "opacity-100" : "opacity-40"
             }`}
-            animate={isFocused ? { scale: 1.01 } : { scale: 1 }}
-            transition={{ duration: 0.3 }}
           />
-          
           <div className="relative flex items-center gap-3 bg-card rounded-full px-6 py-4">
             <input
               type="text"
               placeholder="告诉 AI 教练你今天想怎么动..."
-              className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
+              className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground text-sm"
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
             />
-            
             <Link href="/home">
               <motion.button
-                className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-primary-foreground"
+                className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-primary-foreground flex-shrink-0"
                 whileHover={{ scale: 1.1, rotate: 10 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <motion.svg
-                  className="w-6 h-6"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  animate={{ y: [0, -2, 0], rotate: [0, 5, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5l6.74-6.76z" />
-                  <line x1="16" y1="8" x2="2" y2="22" />
-                  <line x1="17.5" y1="15" x2="9" y2="15" />
-                </motion.svg>
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
               </motion.button>
             </Link>
           </div>
         </motion.div>
-        
-        {/* 快捷建议 */}
+
         <motion.div
-          className="flex flex-wrap justify-center gap-3 mt-6"
+          className="flex flex-wrap justify-center gap-2 mt-5"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
@@ -634,13 +671,13 @@ function CTASection() {
           {["放松拉伸", "经期舒缓", "睡前冥想", "普拉提塑形"].map((tag, i) => (
             <motion.button
               key={tag}
-              className="px-4 py-2 rounded-full glass text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="px-4 py-1.5 rounded-full glass text-xs text-muted-foreground hover:text-foreground transition-colors tracking-wide"
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.6 + i * 0.1 }}
+              transition={{ delay: 0.6 + i * 0.08 }}
             >
               {tag}
             </motion.button>
@@ -651,10 +688,10 @@ function CTASection() {
   )
 }
 
-// 主页面组件
+// ── 主页面 ─────────────────────────────────────────────────
 export default function LandingPage() {
   const [mounted, setMounted] = useState(false)
-  const [phase, setPhase] = useState<'hero' | 'content'>('hero')
+  const [phase, setPhase] = useState<"hero" | "content">("hero")
   const touchStartY = useRef(0)
   const busy = useRef(false)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -664,49 +701,47 @@ export default function LandingPage() {
   const goToContent = () => {
     if (busy.current) return
     busy.current = true
-    setPhase('content')
+    setPhase("content")
     setTimeout(() => { busy.current = false }, 800)
   }
 
   const goToHero = () => {
     if (busy.current) return
     busy.current = true
-    setPhase('hero')
+    setPhase("hero")
     setTimeout(() => { busy.current = false }, 800)
   }
 
-  // 英雄屏：监听向下滚动
   useEffect(() => {
-    if (!mounted || phase !== 'hero') return
+    if (!mounted || phase !== "hero") return
     const onWheel = (e: WheelEvent) => { if (e.deltaY > 20) goToContent() }
     const onTouchStart = (e: TouchEvent) => { touchStartY.current = e.touches[0].clientY }
     const onTouchMove = (e: TouchEvent) => {
       if (touchStartY.current - e.touches[0].clientY > 40) goToContent()
     }
-    window.addEventListener('wheel', onWheel, { passive: true })
-    window.addEventListener('touchstart', onTouchStart, { passive: true })
-    window.addEventListener('touchmove', onTouchMove, { passive: true })
+    window.addEventListener("wheel", onWheel, { passive: true })
+    window.addEventListener("touchstart", onTouchStart, { passive: true })
+    window.addEventListener("touchmove", onTouchMove, { passive: true })
     return () => {
-      window.removeEventListener('wheel', onWheel)
-      window.removeEventListener('touchstart', onTouchStart)
-      window.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener("wheel", onWheel)
+      window.removeEventListener("touchstart", onTouchStart)
+      window.removeEventListener("touchmove", onTouchMove)
     }
   }, [mounted, phase])
 
-  // 内容页顶端：监听向上滑回英雄屏（移动端）
   useEffect(() => {
-    if (!mounted || phase !== 'content') return
+    if (!mounted || phase !== "content") return
     const el = contentRef.current
     if (!el) return
     const onTouchStart = (e: TouchEvent) => { touchStartY.current = e.touches[0].clientY }
     const onTouchMove = (e: TouchEvent) => {
       if (el.scrollTop === 0 && e.touches[0].clientY - touchStartY.current > 40) goToHero()
     }
-    el.addEventListener('touchstart', onTouchStart, { passive: true })
-    el.addEventListener('touchmove', onTouchMove, { passive: true })
+    el.addEventListener("touchstart", onTouchStart, { passive: true })
+    el.addEventListener("touchmove", onTouchMove, { passive: true })
     return () => {
-      el.removeEventListener('touchstart', onTouchStart)
-      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener("touchstart", onTouchStart)
+      el.removeEventListener("touchmove", onTouchMove)
     }
   }, [mounted, phase])
 
@@ -716,12 +751,12 @@ export default function LandingPage() {
 
   return (
     <div className="h-screen overflow-hidden relative">
+      <GrainOverlay />
       <BackgroundEffects density="light" />
       <Navigation />
 
       <AnimatePresence mode="wait">
-        {phase === 'hero' ? (
-          /* ── 英雄首屏 ── */
+        {phase === "hero" ? (
           <motion.div
             key="hero"
             className="absolute inset-0"
@@ -740,7 +775,6 @@ export default function LandingPage() {
             <HeroSection onScrollDown={goToContent} />
           </motion.div>
         ) : (
-          /* ── 长内容页 ── */
           <motion.div
             key="content"
             ref={contentRef}
@@ -751,8 +785,8 @@ export default function LandingPage() {
             transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
             style={{ transformOrigin: "center bottom", transformPerspective: 1400 }}
           >
-            {/* 返回英雄屏按钮（桌面端，顶部滚动到头后显示） */}
-            <div className="sticky top-0 z-20 flex justify-center pt-20 pointer-events-none">
+            {/* 返回按钮 */}
+            <div className="sticky top-0 z-20 flex justify-center pt-4 pointer-events-none">
               <motion.button
                 onClick={goToHero}
                 className="pointer-events-auto flex items-center gap-1.5 px-4 py-1.5 rounded-full glass-strong text-xs text-muted-foreground hover:text-foreground transition-colors shadow-sm"
@@ -761,15 +795,17 @@ export default function LandingPage() {
                 transition={{ delay: 0.4 }}
                 whileHover={{ scale: 1.04 }}
               >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path d="M18 15l-6-6-6 6" />
                 </svg>
                 回到首页
               </motion.button>
             </div>
 
-            <div className="-mt-14">
+            <div className="-mt-10">
+              <MarqueeBand />
               <FeaturesSection />
+              <MarqueeBand />
               <HighlightsSection />
               <CommunitySection />
               <AboutSection />
