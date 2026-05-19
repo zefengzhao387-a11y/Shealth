@@ -98,7 +98,7 @@
   --font-sans: 'Noto Sans SC', 'Geist', 'Geist Fallback', sans-serif;
   --font-serif: 'Noto Serif SC', 'Georgia', serif;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
-  --font-brand: 'Liu Jian Mao Cao', cursive;
+  --font-brand: 'STKaiti', 'KaiTi', 'SimKai', cursive;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
