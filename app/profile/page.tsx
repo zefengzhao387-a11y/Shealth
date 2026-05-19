@@ -328,6 +328,259 @@ function HelpModal({ onClose }: { onClose: () => void }) {
   )
 }
 
+// ── 好友系统 ──────────────────────────────────────────────────
+type FriendStatus = 'none' | 'pending_sent' | 'pending_received' | 'accepted'
+
+interface FriendUser {
+  id: string
+  username: string | null
+  friendship_id?: string
+  status?: FriendStatus
+}
+
+function FriendsModal({ onClose }: { onClose: () => void }) {
+  const { user } = useAuth()
+  const [tab, setTab] = useState<'friends' | 'pending' | 'search'>('friends')
+  const [query, setQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<FriendUser[]>([])
+  const [friends, setFriends] = useState<FriendUser[]>([])
+  const [pendingIn, setPendingIn] = useState<(FriendUser & { friendship_id: string })[]>([])
+  const [loading, setLoading] = useState(false)
+  const [sending, setSending] = useState<Record<string, boolean>>({})
+
+  const loadFriends = async () => {
+    if (!user) return
+    const { data } = await supabase
+      .from('friendships')
+      .select('id, status, requester_id, addressee_id, requester:profiles!friendships_requester_id_fkey(id,username), addressee:profiles!friendships_addressee_id_fkey(id,username)')
+      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+      .eq('status', 'accepted')
+    if (data) {
+      setFriends(data.map((f: any) => {
+        const other = f.requester_id === user.id ? f.addressee : f.requester
+        return { id: other.id, username: other.username, friendship_id: f.id }
+      }))
+    }
+  }
+
+  const loadPending = async () => {
+    if (!user) return
+    const { data } = await supabase
+      .from('friendships')
+      .select('id, requester:profiles!friendships_requester_id_fkey(id,username)')
+      .eq('addressee_id', user.id)
+      .eq('status', 'pending')
+    if (data) {
+      setPendingIn(data.map((f: any) => ({
+        id: f.requester.id, username: f.requester.username, friendship_id: f.id,
+      })))
+    }
+  }
+
+  useEffect(() => {
+    loadFriends()
+    loadPending()
+  }, [user])
+
+  const searchUsers = async () => {
+    if (!query.trim() || !user) return
+    setLoading(true)
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, username')
+      .ilike('username', `%${query.trim()}%`)
+      .neq('id', user.id)
+      .limit(10)
+
+    if (profiles) {
+      const ids = profiles.map((p: any) => p.id)
+      const { data: fs } = await supabase
+        .from('friendships')
+        .select('id, status, requester_id, addressee_id')
+        .or(ids.map((id: string) => `and(requester_id.eq.${user.id},addressee_id.eq.${id}),and(requester_id.eq.${id},addressee_id.eq.${user.id})`).join(','))
+
+      setSearchResults(profiles.map((p: any) => {
+        const f = fs?.find((x: any) =>
+          (x.requester_id === user.id && x.addressee_id === p.id) ||
+          (x.requester_id === p.id && x.addressee_id === user.id)
+        )
+        let status: FriendStatus = 'none'
+        if (f) {
+          if (f.status === 'accepted') status = 'accepted'
+          else if (f.requester_id === user.id) status = 'pending_sent'
+          else status = 'pending_received'
+        }
+        return { ...p, status, friendship_id: f?.id }
+      }))
+    }
+    setLoading(false)
+  }
+
+  const sendRequest = async (toId: string) => {
+    if (!user) return
+    setSending(s => ({ ...s, [toId]: true }))
+    await supabase.from('friendships').insert({ requester_id: user.id, addressee_id: toId })
+    setSearchResults(r => r.map(u => u.id === toId ? { ...u, status: 'pending_sent' } : u))
+    setSending(s => ({ ...s, [toId]: false }))
+  }
+
+  const respond = async (friendshipId: string, accept: boolean) => {
+    await supabase.from('friendships').update({ status: accept ? 'accepted' : 'rejected' }).eq('id', friendshipId)
+    setPendingIn(p => p.filter(u => u.friendship_id !== friendshipId))
+    if (accept) loadFriends()
+  }
+
+  const removeFriend = async (friendshipId: string, friendId: string) => {
+    await supabase.from('friendships').delete().eq('id', friendshipId)
+    setFriends(f => f.filter(u => u.id !== friendId))
+  }
+
+  const TABS = [
+    { key: 'friends', label: `好友 ${friends.length > 0 ? friends.length : ''}` },
+    { key: 'pending', label: `待确认 ${pendingIn.length > 0 ? `(${pendingIn.length})` : ''}` },
+    { key: 'search', label: '搜索' },
+  ] as const
+
+  return (
+    <>
+      <motion.div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+      <motion.div
+        className="fixed inset-x-4 bottom-4 z-[61] bg-card/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-border/30 max-h-[80vh] flex flex-col"
+        initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      >
+        {/* 头部 */}
+        <div className="flex items-center justify-between p-5 pb-0">
+          <h3 className="font-medium text-foreground">我的好友</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full glass flex items-center justify-center">
+            <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        {/* Tab 切换 */}
+        <div className="flex gap-1 mx-5 mt-3 p-1 bg-muted/40 rounded-xl">
+          {TABS.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                tab === t.key ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 内容区 */}
+        <div className="flex-1 overflow-y-auto p-5 pt-3 space-y-2">
+
+          {/* 搜索 tab */}
+          {tab === 'search' && (
+            <>
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="text" value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && searchUsers()}
+                  placeholder="输入用户名搜索..."
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-muted/60 border border-border/30 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/40 transition-colors"
+                />
+                <motion.button
+                  onClick={searchUsers} disabled={loading}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-secondary text-primary-foreground text-sm font-medium"
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {loading ? '...' : '搜索'}
+                </motion.button>
+              </div>
+              {searchResults.map(u => (
+                <div key={u.id} className="flex items-center gap-3 py-2">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-primary/70" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4" /><path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" /></svg>
+                  </div>
+                  <p className="flex-1 text-sm font-medium text-foreground">{u.username ?? '花间用户'}</p>
+                  {u.status === 'accepted' && (
+                    <span className="text-xs text-accent px-2.5 py-1 rounded-full bg-accent/10">已是好友</span>
+                  )}
+                  {u.status === 'pending_sent' && (
+                    <span className="text-xs text-muted-foreground px-2.5 py-1 rounded-full bg-muted/50">已发送</span>
+                  )}
+                  {u.status === 'pending_received' && (
+                    <span className="text-xs text-secondary px-2.5 py-1 rounded-full bg-secondary/10">待你确认</span>
+                  )}
+                  {u.status === 'none' && (
+                    <motion.button
+                      onClick={() => sendRequest(u.id)}
+                      disabled={sending[u.id]}
+                      className="text-xs text-primary-foreground px-3 py-1.5 rounded-full bg-gradient-to-r from-primary to-secondary"
+                      whileTap={{ scale: 0.93 }}
+                    >
+                      {sending[u.id] ? '...' : '加好友'}
+                    </motion.button>
+                  )}
+                </div>
+              ))}
+              {searchResults.length === 0 && query && !loading && (
+                <p className="text-xs text-muted-foreground text-center py-4">没有找到用户</p>
+              )}
+            </>
+          )}
+
+          {/* 待确认 tab */}
+          {tab === 'pending' && (
+            <>
+              {pendingIn.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-6">暂无待确认的好友申请</p>
+              ) : pendingIn.map(u => (
+                <div key={u.id} className="flex items-center gap-3 py-2">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-primary/70" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4" /><path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" /></svg>
+                  </div>
+                  <p className="flex-1 text-sm font-medium text-foreground">{u.username ?? '花间用户'}</p>
+                  <div className="flex gap-1.5">
+                    <motion.button onClick={() => respond(u.friendship_id, true)}
+                      className="text-xs text-primary-foreground px-3 py-1.5 rounded-full bg-gradient-to-r from-primary to-secondary"
+                      whileTap={{ scale: 0.93 }}>接受</motion.button>
+                    <motion.button onClick={() => respond(u.friendship_id, false)}
+                      className="text-xs text-muted-foreground px-3 py-1.5 rounded-full bg-muted/60"
+                      whileTap={{ scale: 0.93 }}>拒绝</motion.button>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* 好友列表 tab */}
+          {tab === 'friends' && (
+            <>
+              {friends.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-2xl mb-2">🌸</p>
+                  <p className="text-sm text-foreground mb-1">还没有好友</p>
+                  <p className="text-xs text-muted-foreground mb-3">去搜索用户添加好友吧</p>
+                  <button onClick={() => setTab('search')} className="text-xs text-primary">去搜索 →</button>
+                </div>
+              ) : friends.map(u => (
+                <div key={u.id} className="flex items-center gap-3 py-2">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-primary/70" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4" /><path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" /></svg>
+                  </div>
+                  <p className="flex-1 text-sm font-medium text-foreground">{u.username ?? '花间用户'}</p>
+                  <motion.button onClick={() => removeFriend(u.friendship_id!, u.id)}
+                    className="text-xs text-muted-foreground px-3 py-1.5 rounded-full bg-muted/40"
+                    whileTap={{ scale: 0.93 }}>删除</motion.button>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </motion.div>
+    </>
+  )
+}
+
 // ── 关于花间塑 ────────────────────────────────────────────────
 function AboutModal({ onClose }: { onClose: () => void }) {
   return (
@@ -374,6 +627,8 @@ export default function ProfilePage() {
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
+  const [showFriends, setShowFriends] = useState(false)
+  const [pendingCount, setPendingCount] = useState(0)
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -381,6 +636,10 @@ export default function ProfilePage() {
     if (!user) return
     supabase.from('dimensions').select('*').eq('user_id', user.id).order('recorded_at', { ascending: false }).limit(7)
       .then(({ data }) => { if (data) setDimensions(data) })
+    // 待确认好友请求数
+    supabase.from('friendships').select('id', { count: 'exact' })
+      .eq('addressee_id', user.id).eq('status', 'pending')
+      .then(({ count }) => { if (count) setPendingCount(count) })
   }, [user])
 
   const handleCheckin = async () => {
@@ -584,6 +843,32 @@ export default function ProfilePage() {
             </div>
           </motion.div>
 
+          {/* 好友入口 */}
+          <motion.div className="mb-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
+            <motion.button
+              onClick={() => setShowFriends(true)}
+              className="w-full glass rounded-2xl p-4 flex items-center gap-3"
+              whileHover={{ scale: 1.01, y: -1 }} whileTap={{ scale: 0.98 }}
+            >
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-secondary/30 to-primary/30 flex items-center justify-center">
+                <svg className="w-5 h-5 text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium text-foreground">我的好友</p>
+                <p className="text-xs text-muted-foreground">搜索用户 · 管理好友</p>
+              </div>
+              {pendingCount > 0 && (
+                <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-medium">
+                  {pendingCount}
+                </span>
+              )}
+              <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+            </motion.button>
+          </motion.div>
+
           {/* 私信箱入口 */}
           <motion.div className="mb-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.38 }}>
             <Link href="/messages">
@@ -650,6 +935,7 @@ export default function ProfilePage() {
         {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
         {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
         {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+        {showFriends && <FriendsModal onClose={() => { setShowFriends(false); setPendingCount(0) }} />}
       </AnimatePresence>
 
       <BottomNav />

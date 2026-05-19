@@ -55,6 +55,29 @@ function PostCard({ post, index, onRequireAuth }: { post: Post & { profiles?: { 
   const [commentText, setCommentText] = useState('')
   const [posting, setPosting] = useState(false)
   const [showDM, setShowDM] = useState(false)
+  const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'accepted'>('none')
+  const [addingFriend, setAddingFriend] = useState(false)
+
+  useEffect(() => {
+    if (!user || user.id === post.user_id) return
+    supabase.from('friendships')
+      .select('status')
+      .or(`and(requester_id.eq.${user.id},addressee_id.eq.${post.user_id}),and(requester_id.eq.${post.user_id},addressee_id.eq.${user.id})`)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) setFriendStatus('none')
+        else if (data.status === 'accepted') setFriendStatus('accepted')
+        else setFriendStatus('pending')
+      })
+  }, [user, post.user_id])
+
+  const addFriend = async () => {
+    if (!user) { onRequireAuth(); return }
+    setAddingFriend(true)
+    await supabase.from('friendships').insert({ requester_id: user.id, addressee_id: post.user_id })
+    setFriendStatus('pending')
+    setAddingFriend(false)
+  }
 
   const handleLike = async () => {
     if (!user) { onRequireAuth(); return }
@@ -145,6 +168,20 @@ function PostCard({ post, index, onRequireAuth }: { post: Post & { profiles?: { 
           {user && user.id !== post.user_id && (
             <motion.button className="flex items-center gap-1.5" onClick={() => setShowDM(true)} whileTap={{ scale: 0.9 }}>
               <svg className="w-5 h-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
+            </motion.button>
+          )}
+
+          {user && user.id !== post.user_id && friendStatus !== 'accepted' && (
+            <motion.button
+              onClick={addFriend} disabled={addingFriend || friendStatus === 'pending'}
+              className="flex items-center gap-1"
+              whileTap={{ scale: 0.9 }}
+            >
+              {friendStatus === 'pending' ? (
+                <svg className="w-5 h-5 text-secondary/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" /></svg>
+              ) : (
+                <svg className="w-5 h-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="17" y1="11" x2="23" y2="11" /></svg>
+              )}
             </motion.button>
           )}
         </div>

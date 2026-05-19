@@ -1,5 +1,5 @@
-allowBuilds:
-  sharp: set this to true or false
+onlyBuiltDependencies:
+  - sharp
 minimumReleaseAgeExclude:
   - '@supabase/auth-js@2.106.0'
   - '@supabase/functions-js@2.106.0'
@@ -7,3 +7,5 @@ minimumReleaseAgeExclude:
   - '@supabase/realtime-js@2.106.0'
   - '@supabase/storage-js@2.106.0'
   - '@supabase/supabase-js@2.106.0'
+allowBuilds:
+  sharp: set this to true or false
