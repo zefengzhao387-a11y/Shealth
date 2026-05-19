@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { BackgroundEffects } from "@/components/shared/effects"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
@@ -41,6 +42,7 @@ function UserAvatar({ seed, size = 10 }: { seed: string; size?: number }) {
 }
 
 export default function MessagesPage() {
+  const router = useRouter()
   const { user, openAuthModal } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -144,6 +146,11 @@ export default function MessagesPage() {
       ))
     }
     setSending(false)
+  }
+
+  const goBack = () => {
+    if (window.history.length > 1) router.back()
+    else router.push('/home')
   }
 
   if (!mounted) return <div className="min-h-screen bg-gradient-to-br from-cream via-peach/10 to-lilac/20" />
@@ -264,9 +271,20 @@ export default function MessagesPage() {
               transition={{ duration: 0.25, ease: "easeOut" }}
             >
               <div className="px-4 pb-4">
-                <div className="mb-5">
-                  <h1 className="text-2xl font-medium text-foreground">私信箱</h1>
-                  <p className="text-sm text-muted-foreground mt-1">与花间好友互相鼓励</p>
+                <div className="mb-5 pt-2">
+                  <div className="flex items-center gap-3 mb-2">
+                    <motion.button
+                      onClick={goBack}
+                      className="w-9 h-9 rounded-full glass flex items-center justify-center"
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <svg className="w-5 h-5 text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M15 18l-6-6 6-6" />
+                      </svg>
+                    </motion.button>
+                    <h1 className="text-2xl font-medium text-foreground">私信箱</h1>
+                  </div>
+                  <p className="text-sm text-muted-foreground">与花间好友互相鼓励</p>
                 </div>
 
                 {loading ? (
