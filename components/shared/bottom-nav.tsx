@@ -68,7 +68,7 @@ const navItems = [
   },
 ]
 
-export function BottomNav() {
+export function BottomNav({ forceHide = false }: { forceHide?: boolean }) {
   const pathname = usePathname()
   const { user } = useAuth()
   const [unread, setUnread] = useState(0)
@@ -89,7 +89,7 @@ export function BottomNav() {
     return () => clearInterval(interval)
   }, [user])
 
-  if (!shouldShowBottomNav) return null
+  if (forceHide || !shouldShowBottomNav) return null
 
   return (
     <motion.nav

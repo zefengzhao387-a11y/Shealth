@@ -332,7 +332,7 @@ export default function MessagesPage() {
         </AnimatePresence>
       </div>
 
-      <BottomNav />
+      <BottomNav forceHide={!!selected} />
     </main>
   )
 }

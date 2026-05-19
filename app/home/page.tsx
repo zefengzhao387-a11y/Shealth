@@ -38,7 +38,7 @@ function AIChat() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data?.error || "AI 暂时不可用")
+        setError(data?.detail || data?.error || "AI 暂时不可用")
         return
       }
       setReply(data.reply || "")

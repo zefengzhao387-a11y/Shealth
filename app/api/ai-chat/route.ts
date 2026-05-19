@@ -37,7 +37,14 @@ export async function POST(request: Request) {
     })
 
     if (!upstream.ok) {
-      const detail = await upstream.text()
+      const raw = await upstream.text()
+      let detail = raw
+      try {
+        const parsed = JSON.parse(raw)
+        detail = parsed?.error?.message || raw
+      } catch {
+        // keep raw text
+      }
       return NextResponse.json({ error: "AI 服务调用失败", detail }, { status: 502 })
     }
 
