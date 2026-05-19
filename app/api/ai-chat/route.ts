@@ -54,8 +54,8 @@ async function callOpenAI(userMessage: string) {
   return { ok: true as const, reply }
 }
 
-async function callGemini(userMessage: string) {
-  const apiKey = process.env.GEMINI_API_KEY
+async function callGemini(userMessage: string, apiKeyOverride?: string) {
+  const apiKey = apiKeyOverride || process.env.GEMINI_API_KEY
   if (!apiKey) {
     return { ok: false as const, status: 500, error: "缺少 GEMINI_API_KEY" }
   }
@@ -110,8 +110,14 @@ export async function POST(request: Request) {
     }
 
     const provider = (process.env.AI_PROVIDER || "").trim().toLowerCase()
-    const useGemini = provider === "gemini" || (!provider && !!process.env.GEMINI_API_KEY)
-    const result = useGemini ? await callGemini(userMessage) : await callOpenAI(userMessage)
+    const geminiKey = process.env.GEMINI_API_KEY
+    const openaiKey = process.env.OPENAI_API_KEY
+    const openaiKeyLooksLikeGemini = !!openaiKey?.startsWith("AIza")
+
+    const useGemini = provider === "gemini" || !!geminiKey || (!provider && openaiKeyLooksLikeGemini)
+    const result = useGemini
+      ? await callGemini(userMessage, !geminiKey && openaiKeyLooksLikeGemini ? openaiKey : undefined)
+      : await callOpenAI(userMessage)
 
     if (!result.ok) {
       return NextResponse.json(
