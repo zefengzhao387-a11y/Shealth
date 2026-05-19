@@ -8,12 +8,6 @@ import { Petal, Sparkle, Ripple, BackgroundEffects } from "@/components/shared/e
 import { LiveStatsBoard } from "@/components/shared/live-stats"
 import { CommunityShowcase } from "@/components/shared/community-showcase"
 import Link from "next/link"
-import dynamic from "next/dynamic"
-
-const VRMCoach = dynamic(
-  () => import("@/components/3d/digital-coach").then(m => m.DigitalCoach),
-  { ssr: false, loading: () => null }
-)
 
 // ── Grain overlay ──────────────────────────────────────────
 function GrainOverlay() {
@@ -41,12 +35,22 @@ function AICoachArea() {
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
         />
       </div>
+      {/* 核心光晕球 */}
       <motion.div
-        className="absolute inset-2 rounded-full overflow-hidden"
+        className="absolute inset-2 rounded-full overflow-hidden bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/20 flex items-center justify-center"
         animate={{ scale: [1, 1.02, 1] }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
       >
-        <VRMCoach view="circle" />
+        <motion.div
+          className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/40 to-secondary/40 flex items-center justify-center"
+          animate={{ scale: [1, 1.05, 1], opacity: [0.8, 1, 0.8] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <svg className="w-8 h-8 text-primary-foreground/80" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" />
+          </svg>
+        </motion.div>
         <motion.div
           className="absolute inset-0 bg-gradient-to-t from-primary/20 via-transparent to-secondary/10 pointer-events-none"
           animate={{ opacity: [0.3, 0.5, 0.3] }}

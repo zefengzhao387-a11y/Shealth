@@ -7,12 +7,6 @@ import { BottomNav } from "@/components/shared/bottom-nav"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
 import Link from "next/link"
-import dynamic from "next/dynamic"
-
-const DigitalCoach3D = dynamic(
-  () => import("@/components/3d/digital-coach").then(mod => mod.DigitalCoach),
-  { ssr: false, loading: () => null }
-)
 
 // ── 工具 ─────────────────────────────────────────────────
 function getGreeting() {
@@ -197,9 +191,49 @@ export default function HomePage() {
           )}
         </motion.div>
 
-        {/* 3D 数字人 Canvas —— 撑满整个区域 */}
-        <div className="w-full h-full">
-          <DigitalCoach3D view="portrait" />
+        {/* AI 教练头像 —— 居中大圆 */}
+        <div className="w-full h-full flex items-center justify-center">
+          <motion.div
+            className="relative"
+            initial={{ scale: 0.85, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            {/* 外层呼吸光环 */}
+            <motion.div
+              className="w-56 h-56 md:w-72 md:h-72 rounded-full bg-gradient-to-br from-primary/20 via-secondary/15 to-accent/15"
+              animate={{ scale: [1, 1.06, 1], opacity: [0.6, 0.9, 0.6] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            />
+            {/* 中层毛玻璃圆 */}
+            <div className="absolute inset-5 rounded-full glass overflow-hidden">
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              />
+            </div>
+            {/* 核心头像 */}
+            <div className="absolute inset-10 rounded-full bg-gradient-to-br from-primary/30 to-secondary/20 flex items-center justify-center">
+              <svg className="w-16 h-16 md:w-20 md:h-20 text-primary/60" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" />
+              </svg>
+            </div>
+            {/* 散落光点 */}
+            {[...Array(6)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-2 h-2 rounded-full bg-primary/40"
+                style={{
+                  left: `${20 + (i % 3) * 30}%`,
+                  top: `${15 + Math.floor(i / 3) * 55}%`,
+                }}
+                animate={{ scale: [0, 1, 0], opacity: [0, 0.8, 0] }}
+                transition={{ duration: 2.5, delay: i * 0.4, repeat: Infinity }}
+              />
+            ))}
+          </motion.div>
         </div>
 
         {/* 在线状态标签 */}
