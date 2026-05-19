@@ -35,8 +35,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [showAuthModal, setShowAuthModal] = useState(false)
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
-    if (data) setProfile(data)
+    const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
+    if (data) { setProfile(data); return }
+    // profile 不存在（trigger 未配置）—— 从 user_metadata 补建
+    const { data: { user: currUser } } = await supabase.auth.getUser()
+    const meta = (currUser?.user_metadata ?? {}) as { username?: string }
+    const fallback = meta.username || currUser?.email?.split('@')[0] || '花间用户'
+    const { data: created } = await supabase
+      .from('profiles')
+      .upsert({ id: userId, username: fallback }, { onConflict: 'id' })
+      .select('*')
+      .single()
+    if (created) setProfile(created)
   }
 
   useEffect(() => {
@@ -69,9 +79,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!username.trim()) return { error: '请输入账号名' }
     if (password.length < 6) return { error: '密码至少需要 6 位' }
     const email = toInternalEmail(username)
-    const { error, data } = await supabase.auth.signUp({ email, password })
+    const { error, data } = await supabase.auth.signUp({
+      email, password,
+      options: { data: { username: username.trim() } },
+    })
     if (!error && data.user) {
-      await supabase.from('profiles').update({ username }).eq('id', data.user.id)
+      // upsert 确保 profile 存在，不依赖 trigger
+      const { error: upErr } = await supabase
+        .from('profiles')
+        .upsert({ id: data.user.id, username: username.trim() }, { onConflict: 'id' })
+      if (upErr) console.error('[signUp] profile upsert error:', upErr.code, upErr.message)
+      await fetchProfile(data.user.id)
     }
     if (!error) setShowAuthModal(false)
     if (error?.message.includes('User already registered')) return { error: '该账号名已被注册' }

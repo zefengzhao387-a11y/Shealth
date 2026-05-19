@@ -77,12 +77,22 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
       })
   }, [user, post.user_id])
 
+  const [friendError, setFriendError] = useState('')
   const addFriend = async () => {
     if (!user) { onRequireAuth(); return }
     setAddingFriend(true)
-    await supabase.from('friendships').insert({ requester_id: user.id, addressee_id: post.user_id })
-    setFriendStatus('pending')
+    setFriendError('')
+    const { error } = await supabase.from('friendships').insert({ requester_id: user.id, addressee_id: post.user_id })
+    if (error) {
+      console.error('[community] addFriend error:', error.code, error.message)
+      if (error.code === '42P01') setFriendError('好友功能未启用')
+      else if (error.code === '23505') { setFriendStatus('pending'); /* duplicate */ }
+      else setFriendError('申请失败')
+    } else {
+      setFriendStatus('pending')
+    }
     setAddingFriend(false)
+    setTimeout(() => setFriendError(''), 2500)
   }
 
   const handleLike = async () => {
@@ -156,17 +166,20 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
           <p className="text-[11px] text-muted-foreground">{timeAgo(post.created_at)}</p>
         </div>
         {user && user.id !== post.user_id && friendStatus !== 'accepted' && (
-          <motion.button
-            onClick={addFriend} disabled={addingFriend || friendStatus === 'pending'}
-            className={`text-xs px-3 py-1.5 rounded-full font-medium ${
-              friendStatus === 'pending'
-                ? 'bg-muted/60 text-muted-foreground'
-                : 'bg-gradient-to-r from-primary to-secondary text-primary-foreground'
-            }`}
-            whileTap={{ scale: 0.93 }}
-          >
-            {friendStatus === 'pending' ? '已申请' : '+ 好友'}
-          </motion.button>
+          <div className="flex flex-col items-end gap-1">
+            <motion.button
+              onClick={addFriend} disabled={addingFriend || friendStatus === 'pending'}
+              className={`text-xs px-3 py-1.5 rounded-full font-medium ${
+                friendStatus === 'pending'
+                  ? 'bg-muted/60 text-muted-foreground'
+                  : 'bg-gradient-to-r from-primary to-secondary text-primary-foreground'
+              }`}
+              whileTap={{ scale: 0.93 }}
+            >
+              {friendStatus === 'pending' ? '已申请' : '+ 好友'}
+            </motion.button>
+            {friendError && <span className="text-[10px] text-destructive">{friendError}</span>}
+          </div>
         )}
         {user && user.id !== post.user_id && friendStatus === 'accepted' && (
           <span className="text-xs px-2.5 py-1 rounded-full bg-accent/15 text-accent">好友</span>
