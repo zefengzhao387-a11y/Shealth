@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { BottomNav } from "@/components/shared/bottom-nav"
+import { Navigation } from "@/components/shared/navigation"
 
 // ── 工具 ─────────────────────────────────────────────────
 function getGreeting() {
@@ -14,39 +15,28 @@ function getGreeting() {
 }
 
 // ── AI 对话栏 ─────────────────────────────────────────────
-function AIChat() {
+function AIChat({
+  onAsk,
+  thinking,
+  error,
+}: {
+  onAsk: (content: string) => Promise<void>
+  thinking: boolean
+  error: string
+}) {
   const [msg, setMsg] = useState("")
   const [focused, setFocused] = useState(false)
-  const [thinking, setThinking] = useState(false)
-  const [error, setError] = useState("")
-  const [reply, setReply] = useState("")
 
   const sendToAI = async (e: React.FormEvent) => {
     e.preventDefault()
     const content = msg.trim()
     if (!content || thinking) return
 
-    setThinking(true)
-    setError("")
-    setReply("")
-
     try {
-      const res = await fetch("/api/ai-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: content }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data?.detail || data?.error || "AI 暂时不可用")
-        return
-      }
-      setReply(data.reply || "")
+      await onAsk(content)
       setMsg("")
     } catch {
-      setError("网络异常，请稍后再试")
-    } finally {
-      setThinking(false)
+      // errors are surfaced by parent state
     }
   }
 
@@ -91,7 +81,6 @@ function AIChat() {
         </form>
         {thinking && <p className="mt-2 text-xs text-muted-foreground">灵息思考中...</p>}
         {!!error && <p className="mt-2 text-xs text-destructive">{error}</p>}
-        {!!reply && !thinking && <p className="mt-2 text-sm text-foreground/90 leading-relaxed">{reply}</p>}
       </div>
     </motion.div>
   )
@@ -100,9 +89,41 @@ function AIChat() {
 // ── 主页面 ────────────────────────────────────────────────
 export default function HomePage() {
   const [mounted, setMounted] = useState(false)
+  const [thinking, setThinking] = useState(false)
+  const [error, setError] = useState("")
+  const [reply, setReply] = useState("")
+  const [bubbleOffset, setBubbleOffset] = useState({ x: 0, y: 0 })
   const greeting = getGreeting()
 
   useEffect(() => { setMounted(true) }, [])
+
+  const askAI = async (content: string) => {
+    setThinking(true)
+    setError("")
+    setReply("")
+    setBubbleOffset({
+      x: Math.floor(Math.random() * 30) - 15,
+      y: Math.floor(Math.random() * 16) - 8,
+    })
+
+    try {
+      const res = await fetch("/api/ai-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: content }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data?.detail || data?.error || "AI 暂时不可用")
+        return
+      }
+      setReply(data.reply || "")
+    } catch {
+      setError("网络异常，请稍后再试")
+    } finally {
+      setThinking(false)
+    }
+  }
 
   if (!mounted) return <div className="h-screen bg-background" />
 
@@ -120,23 +141,10 @@ export default function HomePage() {
         />
       </div>
 
+      <Navigation />
+
       {/* ── 数字人区域：撑满剩余高度 ── */}
       <div className="flex-1 relative pt-14 overflow-hidden">
-        {/* 问候语云朵（尖角指向数字人） */}
-        <motion.div
-          className="absolute top-4 left-0 right-0 z-10 flex flex-col items-center pointer-events-none"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <div className="relative">
-            <p className="text-sm md:text-base font-medium text-foreground/80 bg-card/90 backdrop-blur-md px-4 py-1.5 rounded-2xl shadow-sm border border-border/50">
-              {greeting}
-            </p>
-            <span className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[10px] border-t-card/90" />
-          </div>
-        </motion.div>
-
         {/* AI 教练头像 —— 居中大圆 */}
         <div className="w-full h-full flex items-center justify-center">
           <motion.div
@@ -145,6 +153,21 @@ export default function HomePage() {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
+            <motion.div
+              className="absolute left-1/2 -top-10 z-10 pointer-events-none"
+              style={{ transform: `translateX(calc(-50% + ${bubbleOffset.x}px)) translateY(${bubbleOffset.y}px)` }}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              <div className="relative max-w-[260px] md:max-w-[360px] rounded-2xl bg-card/90 border border-border/50 shadow-md backdrop-blur-md px-4 py-2.5">
+                <p className="text-sm md:text-base leading-relaxed text-foreground/85 whitespace-pre-wrap">
+                  {thinking ? "灵息正在思考..." : (reply || greeting)}
+                </p>
+                <span className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[10px] border-t-card/90" />
+              </div>
+            </motion.div>
+
             {/* 外层呼吸光环 */}
             <motion.div
               className="w-56 h-56 md:w-72 md:h-72 rounded-full bg-gradient-to-br from-primary/20 via-secondary/15 to-accent/15"
@@ -185,7 +208,7 @@ export default function HomePage() {
       </div>
 
       <div className="px-4 pb-20">
-        <AIChat />
+        <AIChat onAsk={askAI} thinking={thinking} error={error} />
       </div>
 
       <BottomNav />
