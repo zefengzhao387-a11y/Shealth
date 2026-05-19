@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+const GEMINI_FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro-latest"]
 
 function getErrorMessage(raw: string) {
   let detail = raw
@@ -54,13 +55,7 @@ async function callOpenAI(userMessage: string) {
   return { ok: true as const, reply }
 }
 
-async function callGemini(userMessage: string, apiKeyOverride?: string) {
-  const apiKey = apiKeyOverride || process.env.GEMINI_API_KEY
-  if (!apiKey) {
-    return { ok: false as const, status: 500, error: "缺少 GEMINI_API_KEY" }
-  }
-
-  const model = process.env.GEMINI_MODEL || "gemini-1.5-flash"
+async function requestGemini(model: string, apiKey: string, userMessage: string) {
   const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`
 
   const upstream = await fetch(url, {
@@ -88,7 +83,7 @@ async function callGemini(userMessage: string, apiKeyOverride?: string) {
 
   if (!upstream.ok) {
     const detail = getErrorMessage(await upstream.text())
-    return { ok: false as const, status: 502, error: "AI 服务调用失败", detail }
+    return { ok: false as const, status: upstream.status || 502, error: "AI 服务调用失败", detail }
   }
 
   const data = await upstream.json()
@@ -98,6 +93,33 @@ async function callGemini(userMessage: string, apiKeyOverride?: string) {
   }
 
   return { ok: true as const, reply }
+}
+
+async function callGemini(userMessage: string, apiKeyOverride?: string) {
+  const apiKey = apiKeyOverride || process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    return { ok: false as const, status: 500, error: "缺少 GEMINI_API_KEY" }
+  }
+
+  const configuredModel = process.env.GEMINI_MODEL || "gemini-2.0-flash"
+  const modelCandidates = [configuredModel, ...GEMINI_FALLBACK_MODELS.filter((m) => m !== configuredModel)]
+
+  let lastError: { ok: false; status: number; error: string; detail?: string } | null = null
+  for (const model of modelCandidates) {
+    const result = await requestGemini(model, apiKey, userMessage)
+    if (result.ok) return result
+
+    const detail = result.detail || ""
+    const shouldTryNextModel =
+      detail.includes("is not found for API version") ||
+      detail.includes("not supported for generateContent") ||
+      detail.includes("permission")
+
+    lastError = result
+    if (!shouldTryNextModel) break
+  }
+
+  return lastError || { ok: false as const, status: 502, error: "AI 服务调用失败" }
 }
 
 export async function POST(request: Request) {
