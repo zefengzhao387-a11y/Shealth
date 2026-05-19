@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 const GEMINI_FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro-latest"]
+const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
 
 function getErrorMessage(raw: string) {
   let detail = raw
@@ -44,6 +45,46 @@ async function callOpenAI(userMessage: string) {
   if (!upstream.ok) {
     const detail = getErrorMessage(await upstream.text())
     return { ok: false as const, status: 502, error: "AI 服务调用失败", detail }
+  }
+
+  const data = await upstream.json()
+  const reply = data?.choices?.[0]?.message?.content?.trim()
+  if (!reply) {
+    return { ok: false as const, status: 502, error: "AI 暂无回复" }
+  }
+
+  return { ok: true as const, reply }
+}
+
+async function callDeepSeek(userMessage: string, apiKeyOverride?: string) {
+  const apiKey = apiKeyOverride || process.env.DEEPSEEK_API_KEY
+  if (!apiKey) {
+    return { ok: false as const, status: 500, error: "缺少 DEEPSEEK_API_KEY" }
+  }
+
+  const upstream = await fetch(DEEPSEEK_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
+      temperature: 0.7,
+      messages: [
+        {
+          role: "system",
+          content:
+            "你是花间塑的灵息数字人教练。回答温柔、简洁、鼓励式，尽量结合女性健身、情绪陪伴和生活节奏给出可执行建议。",
+        },
+        { role: "user", content: userMessage },
+      ],
+    }),
+  })
+
+  if (!upstream.ok) {
+    const detail = getErrorMessage(await upstream.text())
+    return { ok: false as const, status: upstream.status || 502, error: "AI 服务调用失败", detail }
   }
 
   const data = await upstream.json()
@@ -133,13 +174,27 @@ export async function POST(request: Request) {
 
     const provider = (process.env.AI_PROVIDER || "").trim().toLowerCase()
     const geminiKey = process.env.GEMINI_API_KEY
+    const deepseekKey = process.env.DEEPSEEK_API_KEY
     const openaiKey = process.env.OPENAI_API_KEY
     const openaiKeyLooksLikeGemini = !!openaiKey?.startsWith("AIza")
+    const openaiKeyLooksLikeDeepSeek = !!openaiKey?.startsWith("sk-")
+    const geminiKeyLooksLikeDeepSeek = !!geminiKey?.startsWith("sk-")
 
-    const useGemini = provider === "gemini" || !!geminiKey || (!provider && openaiKeyLooksLikeGemini)
-    const result = useGemini
-      ? await callGemini(userMessage, !geminiKey && openaiKeyLooksLikeGemini ? openaiKey : undefined)
-      : await callOpenAI(userMessage)
+    let result:
+      | Awaited<ReturnType<typeof callGemini>>
+      | Awaited<ReturnType<typeof callDeepSeek>>
+      | Awaited<ReturnType<typeof callOpenAI>>
+
+    if (provider === "gemini" || (!!geminiKey && !geminiKeyLooksLikeDeepSeek && provider !== "deepseek")) {
+      result = await callGemini(userMessage, !geminiKey && openaiKeyLooksLikeGemini ? openaiKey : undefined)
+    } else if (provider === "deepseek" || !!deepseekKey || geminiKeyLooksLikeDeepSeek || (!provider && openaiKeyLooksLikeDeepSeek)) {
+      result = await callDeepSeek(
+        userMessage,
+        deepseekKey ? undefined : (geminiKeyLooksLikeDeepSeek ? geminiKey : (openaiKeyLooksLikeDeepSeek ? openaiKey : undefined)),
+      )
+    } else {
+      result = await callOpenAI(userMessage)
+    }
 
     if (!result.ok) {
       return NextResponse.json(
