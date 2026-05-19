@@ -52,7 +52,7 @@ interface PostWithMeta extends Post {
 function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: number; onRequireAuth: () => void }) {
   const { user } = useAuth()
   const [liked, setLiked] = useState(post.liked ?? false)
-  const [likesCount, setLikesCount] = useState(post.likes_count)
+  const [likesCount, setLikesCount] = useState(post.likes_count ?? 0)
   const [commentsCount, setCommentsCount] = useState(post.comments_count ?? 0)
   const [showBloom, setShowBloom] = useState(false)
   const [showComments, setShowComments] = useState(false)
@@ -100,16 +100,31 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
       setLiked(false)
       const next = Math.max(0, likesCount - 1)
       setLikesCount(next)
-      await supabase.from('post_likes').delete().match({ user_id: user.id, post_id: post.id })
-      await supabase.from('posts').update({ likes_count: next }).eq('id', post.id)
+      const { error } = await supabase.from('post_likes').delete().match({ user_id: user.id, post_id: post.id })
+      if (error) {
+        setLiked(true)
+        setLikesCount(likesCount)
+        return
+      }
     } else {
       setLiked(true)
       const next = likesCount + 1
       setLikesCount(next)
       setShowBloom(true)
-      await supabase.from('post_likes').insert({ user_id: user.id, post_id: post.id })
-      await supabase.from('posts').update({ likes_count: next }).eq('id', post.id)
+      const { error } = await supabase.from('post_likes').insert({ user_id: user.id, post_id: post.id })
+      if (error) {
+        setLiked(false)
+        setLikesCount(likesCount)
+        return
+      }
     }
+
+    // Always sync from source of truth so refresh won't lose count.
+    const { count } = await supabase
+      .from('post_likes')
+      .select('id', { count: 'exact', head: true })
+      .eq('post_id', post.id)
+    setLikesCount(count ?? 0)
   }
 
   const loadComments = async () => {
@@ -441,12 +456,13 @@ export default function CommunityPage() {
       const userIds = Array.from(new Set(newPosts.map(p => p.user_id)))
 
       // 并行查 用户名、评论数、当前用户点赞
-      const [profilesRes, commentsRes, likesRes] = await Promise.all([
+      const [profilesRes, commentsRes, likesRes, likesCountRes] = await Promise.all([
         supabase.from('profiles').select('id, username').in('id', userIds),
         supabase.from('comments').select('post_id').in('post_id', postIds),
         user
           ? supabase.from('post_likes').select('post_id').eq('user_id', user.id).in('post_id', postIds)
           : Promise.resolve({ data: [] as { post_id: string }[] }),
+        supabase.from('post_likes').select('post_id').in('post_id', postIds),
       ])
 
       const nameMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p.username]))
@@ -455,11 +471,16 @@ export default function CommunityPage() {
         commentCount[c.post_id] = (commentCount[c.post_id] ?? 0) + 1
       })
       const likedSet = new Set((likesRes.data ?? []).map((l: any) => l.post_id))
+      const likeCount: Record<string, number> = {}
+      ;(likesCountRes.data ?? []).forEach((l: any) => {
+        likeCount[l.post_id] = (likeCount[l.post_id] ?? 0) + 1
+      })
 
       const enriched = newPosts.map(p => ({
         ...p,
         username: nameMap.get(p.user_id) ?? null,
         comments_count: commentCount[p.id] ?? 0,
+        likes_count: likeCount[p.id] ?? 0,
         liked: likedSet.has(p.id),
       }))
       setPosts(prev => replace ? enriched : [...prev, ...enriched])

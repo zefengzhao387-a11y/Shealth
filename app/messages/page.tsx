@@ -175,7 +175,7 @@ export default function MessagesPage() {
     <main className="relative min-h-screen pb-20">
       <div className="fixed inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 -z-10" />
       <BackgroundEffects density="light" />
-      <Navigation />
+      {!selected && <Navigation />}
 
       <div className="relative z-10 pt-16 h-screen flex flex-col">
         <AnimatePresence mode="wait">

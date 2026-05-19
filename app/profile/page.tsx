@@ -459,8 +459,8 @@ function FriendsModal({ onClose }: { onClose: () => void }) {
       <motion.div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
       <motion.div
-        className="fixed inset-x-4 bottom-4 z-[61] bg-card/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-border/30 max-h-[80vh] flex flex-col"
-        initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
+        className="fixed left-1/2 top-1/2 z-[61] w-[92vw] max-w-2xl max-h-[82vh] -translate-x-1/2 -translate-y-1/2 bg-card/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-border/30 flex flex-col"
+        initial={{ opacity: 0, y: 30, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.98 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
       >
         {/* 头部 */}
