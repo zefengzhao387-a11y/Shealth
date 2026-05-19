@@ -72,6 +72,7 @@ export function BottomNav() {
   const pathname = usePathname()
   const { user } = useAuth()
   const [unread, setUnread] = useState(0)
+  const shouldShowBottomNav = navItems.some((item) => pathname === item.href)
 
   useEffect(() => {
     if (!user) { setUnread(0); return }
@@ -88,7 +89,7 @@ export function BottomNav() {
     return () => clearInterval(interval)
   }, [user])
 
-  if (pathname === "/") return null
+  if (!shouldShowBottomNav) return null
 
   return (
     <motion.nav
@@ -97,7 +98,7 @@ export function BottomNav() {
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="fixed bottom-0 left-0 right-0 z-50 pb-safe"
     >
-      <div className="mx-4 mb-4 glass rounded-2xl px-2 py-2">
+      <div className="mx-4 mb-4 rounded-2xl px-2 py-2 bg-card border border-border/60 shadow-lg">
         <div className="flex items-center justify-around">
           {navItems.map((item) => {
             const isActive = pathname === item.href
