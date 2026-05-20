@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { Navigation } from "@/components/shared/navigation"
+import { BackgroundEffects } from "@/components/shared/effects"
 
 // ── 工具 ─────────────────────────────────────────────────
 function getGreeting() {
@@ -92,9 +93,18 @@ export default function HomePage() {
   const [error, setError] = useState("")
   const [reply, setReply] = useState("")
   const [bubbleOffset, setBubbleOffset] = useState({ x: 0, y: 0 })
+  const [bubbleSide, setBubbleSide] = useState<"left" | "right">("right")
+  const [isMobile, setIsMobile] = useState(false)
   const greeting = getGreeting()
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    setMounted(true)
+    const mq = window.matchMedia("(max-width: 768px)")
+    const syncMobile = () => setIsMobile(mq.matches)
+    syncMobile()
+    mq.addEventListener("change", syncMobile)
+    return () => mq.removeEventListener("change", syncMobile)
+  }, [])
 
   const askAI = async (content: string) => {
     setThinking(true)
@@ -104,6 +114,7 @@ export default function HomePage() {
       x: Math.floor(Math.random() * 30) - 15,
       y: Math.floor(Math.random() * 16) - 8,
     })
+    setBubbleSide(Math.random() > 0.5 ? "left" : "right")
 
     try {
       const res = await fetch("/api/ai-chat", {
@@ -125,11 +136,21 @@ export default function HomePage() {
   }
 
   if (!mounted) return <div className="h-screen bg-background" />
+  const bubbleText = thinking ? "灵息正在思考..." : (reply || greeting)
+  const headAnchorTop = isMobile ? 28 : 14
+  const pointerTopPx = Math.max(
+    isMobile ? 24 : 20,
+    Math.min(
+      isMobile ? 52 : 44,
+      (isMobile ? 24 : 20) + bubbleText.length * (isMobile ? 0.18 : 0.14),
+    ),
+  )
 
   return (
     <div className="h-screen overflow-hidden bg-background flex flex-col relative">
       {/* 背景光晕 */}
       <div className="fixed inset-0 pointer-events-none -z-10">
+        <BackgroundEffects density="light" />
         <motion.div className="absolute top-0 left-1/4 w-80 h-80 rounded-full bg-primary/6 blur-3xl"
           animate={{ x: [0, 20, 0], y: [0, 10, 0] }}
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
@@ -153,17 +174,29 @@ export default function HomePage() {
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <motion.div
-              className="absolute left-1/2 -top-10 z-10 pointer-events-none"
-              style={{ transform: `translateX(calc(-50% + ${bubbleOffset.x}px)) translateY(${bubbleOffset.y}px)` }}
+              className={`absolute z-20 pointer-events-none ${
+                bubbleSide === "right" ? "left-[calc(100%+16px)]" : "right-[calc(100%+16px)]"
+              }`}
+              style={{
+                top: `${headAnchorTop}%`,
+                transform: `translateX(${bubbleOffset.x}px) translateY(${bubbleOffset.y}px)`,
+              }}
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25 }}
             >
-              <div className="relative max-w-[260px] md:max-w-[360px] rounded-2xl bg-card/90 border border-border/50 shadow-md backdrop-blur-md px-4 py-2.5">
-                <p className="text-sm md:text-base leading-relaxed text-foreground/85 whitespace-pre-wrap">
-                  {thinking ? "灵息正在思考..." : (reply || greeting)}
+              <div className="relative w-[min(66vw,320px)] min-w-[220px] rounded-2xl bg-card/90 border border-border/50 shadow-md backdrop-blur-md px-4 py-3">
+                <p className="text-sm md:text-base leading-relaxed text-foreground/85 whitespace-pre-wrap break-words">
+                  {bubbleText}
                 </p>
-                <span className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[10px] border-t-card/90" />
+                <span
+                  className={`absolute w-3 h-3 rotate-45 bg-card/90 border-border/50 ${
+                    bubbleSide === "right"
+                      ? "-left-[6px] border-l border-b"
+                      : "-right-[6px] border-r border-t"
+                  }`}
+                  style={{ top: `${pointerTopPx}px`, transform: "translateY(-50%) rotate(45deg)" }}
+                />
               </div>
             </motion.div>
 
