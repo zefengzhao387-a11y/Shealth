@@ -6,7 +6,23 @@ import { supabase } from '@/lib/supabase'
 import type { Profile } from '@/lib/supabase'
 
 // 用用户名构造内部邮箱，绕过邮件发送
+function hash32(input: string, seed: number) {
+  let h = seed >>> 0
+  for (let i = 0; i < input.length; i += 1) {
+    h ^= input.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return (h >>> 0).toString(16).padStart(8, '0')
+}
+
 function toInternalEmail(username: string) {
+  const normalized = username.trim().toLowerCase()
+  const safe = `u_${hash32(normalized, 0x811c9dc5)}${hash32(normalized, 0x9e3779b1)}`
+  return `${safe}@floramotion.app`
+}
+
+// 兼容上一版算法（使用 encodeURIComponent + 下划线）
+function toEncodedInternalEmail(username: string) {
   const normalized = username.trim().toLowerCase()
   const encoded = encodeURIComponent(normalized)
     .replace(/%/g, '_')
@@ -15,7 +31,7 @@ function toInternalEmail(username: string) {
   return `${safe}@floramotion.app`
 }
 
-// 兼容旧算法（早期仅保留 [a-z0-9_]）
+// 兼容更早算法（仅保留 [a-z0-9_]）
 function toLegacyInternalEmail(username: string) {
   const safe = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_')
   return `${safe || 'user'}@floramotion.app`
@@ -93,6 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (usernameError) return { error: usernameError }
 
     const primaryEmail = toInternalEmail(normalized)
+    const encodedEmail = toEncodedInternalEmail(normalized)
     const legacyEmail = toLegacyInternalEmail(normalized)
 
     const primaryRes = await supabase.auth.signInWithPassword({ email: primaryEmail, password })
@@ -101,18 +118,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: null }
     }
 
-    // 旧算法与新算法邮箱不同才回退重试
-    if (legacyEmail !== primaryEmail) {
-      const legacyRes = await supabase.auth.signInWithPassword({ email: legacyEmail, password })
-      if (!legacyRes.error) {
+    // 兼容历史映射算法
+    const fallbacks = [encodedEmail, legacyEmail].filter((email, i, arr) => email !== primaryEmail && arr.indexOf(email) === i)
+    for (const fallbackEmail of fallbacks) {
+      const fallbackRes = await supabase.auth.signInWithPassword({ email: fallbackEmail, password })
+      if (!fallbackRes.error) {
         setShowAuthModal(false)
         return { error: null }
       }
-      if (legacyRes.error?.message.includes('Invalid login credentials')) return { error: '用户名或密码错误' }
-      return { error: legacyRes.error?.message ?? null }
+      if (!fallbackRes.error?.message.includes('Invalid login credentials')) {
+        if (fallbackRes.error?.message.includes('Email address') && fallbackRes.error?.message.includes('invalid')) {
+          return { error: '账号系统映射异常，请稍后重试' }
+        }
+        return { error: fallbackRes.error?.message ?? null }
+      }
     }
 
     if (primaryRes.error?.message.includes('Invalid login credentials')) return { error: '用户名或密码错误' }
+    if (primaryRes.error?.message.includes('Email address') && primaryRes.error?.message.includes('invalid')) {
+      return { error: '账号系统映射异常，请稍后重试' }
+    }
     return { error: primaryRes.error?.message ?? null }
   }
 
@@ -137,6 +162,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     if (!error) setShowAuthModal(false)
     if (error?.message.includes('User already registered')) return { error: '该用户名已被注册' }
+    if (error?.message.includes('Email address') && error?.message.includes('invalid')) {
+      return { error: '账号系统映射异常，请更换用户名后重试' }
+    }
     return { error: error?.message ?? null }
   }
 
