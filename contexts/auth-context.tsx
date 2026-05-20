@@ -5,7 +5,7 @@ import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { Profile } from '@/lib/supabase'
 
-// 用用户名构造内部邮箱，绕过邮件发送
+// 兼容最近一版哈希算法（仅用于历史账号登录回退）
 function hash32(input: string, seed: number) {
   let h = seed >>> 0
   for (let i = 0; i < input.length; i += 1) {
@@ -15,10 +15,16 @@ function hash32(input: string, seed: number) {
   return (h >>> 0).toString(16).padStart(8, '0')
 }
 
-function toInternalEmail(username: string) {
+function toHashedInternalEmail(username: string) {
   const normalized = username.trim().toLowerCase()
   const safe = `u_${hash32(normalized, 0x811c9dc5)}${hash32(normalized, 0x9e3779b1)}`
   return `${safe}@floramotion.app`
+}
+
+// 当前算法：直接使用用户名作为内部邮箱 local-part
+function toInternalEmail(username: string) {
+  const normalized = username.trim().toLowerCase()
+  return `${normalized}@floramotion.app`
 }
 
 // 兼容上一版算法（使用 encodeURIComponent + 下划线）
@@ -43,7 +49,7 @@ interface AuthContextType {
   session: Session | null
   loading: boolean
   signIn: (username: string, password: string) => Promise<{ error: string | null }>
-  signUp: (username: string, password: string) => Promise<{ error: string | null }>
+  signUp: (username: string, displayName: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   showAuthModal: boolean
   openAuthModal: () => void
@@ -57,8 +63,8 @@ function validateUsername(username: string): string | null {
   const normalized = username.trim()
   if (!normalized) return '请输入用户名'
   if (normalized.length < 2 || normalized.length > 24) return '用户名需为 2-24 个字符'
-  if (!/^[\u4e00-\u9fa5a-zA-Z0-9_]+$/.test(normalized)) {
-    return '用户名仅支持中文、英文、数字、下划线'
+  if (!/^[a-zA-Z0-9_]+$/.test(normalized)) {
+    return '用户名仅支持英文、数字、下划线（不支持中文）'
   }
   return null
 }
@@ -75,8 +81,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (data) { setProfile(data); return }
     // profile 不存在（trigger 未配置）—— 从 user_metadata 补建
     const { data: { user: currUser } } = await supabase.auth.getUser()
-    const meta = (currUser?.user_metadata ?? {}) as { username?: string }
-    const fallback = meta.username || currUser?.email?.split('@')[0] || '花间用户'
+    const meta = (currUser?.user_metadata ?? {}) as { username?: string; display_name?: string }
+    const fallback = meta.display_name || meta.username || currUser?.email?.split('@')[0] || '花间用户'
     const { data: created } = await supabase
       .from('profiles')
       .upsert({ id: userId, username: fallback }, { onConflict: 'id' })
@@ -109,6 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (usernameError) return { error: usernameError }
 
     const primaryEmail = toInternalEmail(normalized)
+    const hashedEmail = toHashedInternalEmail(normalized)
     const encodedEmail = toEncodedInternalEmail(normalized)
     const legacyEmail = toLegacyInternalEmail(normalized)
 
@@ -119,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // 兼容历史映射算法
-    const fallbacks = [encodedEmail, legacyEmail].filter((email, i, arr) => email !== primaryEmail && arr.indexOf(email) === i)
+    const fallbacks = [hashedEmail, encodedEmail, legacyEmail].filter((email, i, arr) => email !== primaryEmail && arr.indexOf(email) === i)
     for (const fallbackEmail of fallbacks) {
       const fallbackRes = await supabase.auth.signInWithPassword({ email: fallbackEmail, password })
       if (!fallbackRes.error) {
@@ -141,22 +148,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: primaryRes.error?.message ?? null }
   }
 
-  const signUp = async (username: string, password: string) => {
+  const signUp = async (username: string, displayName: string, password: string) => {
     const normalized = username.trim()
     const usernameError = validateUsername(normalized)
     if (usernameError) return { error: usernameError }
+    const normalizedDisplayName = displayName.trim()
+    if (!normalizedDisplayName) return { error: '请输入 displayName' }
     if (password.length < 6) return { error: '密码至少需要 6 位' }
 
     const email = toInternalEmail(normalized)
     const { error, data } = await supabase.auth.signUp({
       email, password,
-      options: { data: { username: normalized } },
+      options: { data: { username: normalized, display_name: normalizedDisplayName } },
     })
     if (!error && data.user) {
       // upsert 确保 profile 存在，不依赖 trigger
       const { error: upErr } = await supabase
         .from('profiles')
-        .upsert({ id: data.user.id, username: normalized }, { onConflict: 'id' })
+        .upsert({ id: data.user.id, username: normalizedDisplayName }, { onConflict: 'id' })
       if (upErr) console.error('[signUp] profile upsert error:', upErr.code, upErr.message)
       await fetchProfile(data.user.id)
     }

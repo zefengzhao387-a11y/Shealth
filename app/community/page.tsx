@@ -472,7 +472,7 @@ export default function CommunityPage() {
       const postIds = newPosts.map(p => p.id)
       const userIds = Array.from(new Set(newPosts.map(p => p.user_id)))
 
-      // 并行查 用户名、评论数、当前用户点赞
+      // 并行查 displayName、评论数、当前用户点赞
       const [profilesRes, commentsRes, likesRes, likesCountRes] = await Promise.all([
         supabase.from('profiles').select('id, username').in('id', userIds),
         supabase.from('comments').select('post_id').in('post_id', postIds),

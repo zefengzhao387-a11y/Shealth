@@ -75,7 +75,7 @@ export default function MessagesPage() {
 
     const otherIds = [...new Set(data.map(m => m.sender_id === user.id ? m.receiver_id : m.sender_id))]
     const { data: profiles } = await supabase.from('profiles').select('id, username').in('id', otherIds)
-    const profileMap = new Map(profiles?.map(p => [p.id, p.username ?? '花间用户']) ?? [])
+    const profileMap = new Map(profiles?.map(p => [p.id, p.username || '花间用户']) ?? [])
 
     const convMap = new Map<string, Conversation>()
     for (const msg of data) {
