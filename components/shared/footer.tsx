@@ -40,7 +40,7 @@ export function Footer({ showCTA = true }: { showCTA?: boolean }) {
         </div>
         
         <div className="flex items-center gap-6 text-sm text-muted-foreground">
-          <a href="#" className="hover:text-foreground transition-colors">隐私政策</a>
+          <a id="privacy-policy-link" href="#" className="hover:text-foreground transition-colors">隐私政策</a>
           <a href="#" className="hover:text-foreground transition-colors">用户协议</a>
           <a href="#" className="hover:text-foreground transition-colors">联系我们</a>
         </div>

@@ -746,6 +746,7 @@ export default function LandingPage() {
   const touchStartY = useRef(0)
   const busy = useRef(false)
   const contentRef = useRef<HTMLDivElement>(null)
+  const privacyRef = useRef<HTMLAnchorElement>(null)
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -784,13 +785,27 @@ export default function LandingPage() {
     if (!mounted || phase !== "content") return
     const el = contentRef.current
     if (!el) return
+
+    const clampScrollToPrivacy = () => {
+      const privacy = privacyRef.current
+      if (!privacy) return
+      const maxScroll = Math.max(0, privacy.offsetTop - el.clientHeight + 72)
+      if (el.scrollTop > maxScroll) {
+        el.scrollTop = maxScroll
+      }
+    }
+
+    const onScroll = () => clampScrollToPrivacy()
     const onTouchStart = (e: TouchEvent) => { touchStartY.current = e.touches[0].clientY }
     const onTouchMove = (e: TouchEvent) => {
       if (el.scrollTop === 0 && e.touches[0].clientY - touchStartY.current > 40) goToHero()
     }
+    clampScrollToPrivacy()
+    el.addEventListener("scroll", onScroll, { passive: true })
     el.addEventListener("touchstart", onTouchStart, { passive: true })
     el.addEventListener("touchmove", onTouchMove, { passive: true })
     return () => {
+      el.removeEventListener("scroll", onScroll)
       el.removeEventListener("touchstart", onTouchStart)
       el.removeEventListener("touchmove", onTouchMove)
     }
@@ -837,7 +852,7 @@ export default function LandingPage() {
             style={{ transformOrigin: "center bottom", transformPerspective: 1400 }}
           >
             {/* 返回按钮 */}
-            <div className="sticky top-0 z-20 flex justify-center pt-20 md:pt-20 pointer-events-none">
+            <div className="sticky top-0 z-20 flex justify-center pt-12 md:pt-14 pointer-events-none">
               <motion.button
                 onClick={goToHero}
                 className="pointer-events-auto hidden md:flex items-center gap-1.5 px-4 py-1.5 rounded-full glass-strong text-xs text-muted-foreground hover:text-foreground transition-colors shadow-sm"
@@ -853,13 +868,14 @@ export default function LandingPage() {
               </motion.button>
             </div>
 
-            <div className="-mt-16 md:-mt-16">
+            <div className="-mt-8 md:-mt-10">
               <FeaturesSection />
               <HighlightsSection />
               <TodayPlanSection />
               <CommunitySection />
               <AboutSection />
               <CTASection />
+              <a ref={privacyRef} id="privacy-policy-anchor" className="block h-px w-full" aria-hidden />
               <Footer />
             </div>
           </motion.div>

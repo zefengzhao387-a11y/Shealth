@@ -137,7 +137,7 @@ export default function HomePage() {
 
   if (!mounted) return <div className="h-screen bg-background" />
   const bubbleText = thinking ? "灵息正在思考..." : (reply || greeting)
-  const headAnchorTop = isMobile ? 28 : 14
+  const headAnchorTop = isMobile ? 4 : 8
   const pointerTopPx = Math.max(
     isMobile ? 24 : 20,
     Math.min(
@@ -182,14 +182,14 @@ export default function HomePage() {
               style={{
                 top: `${headAnchorTop}%`,
                 transform: isMobile
-                  ? `translateY(${bubbleOffset.y}px)`
+                  ? "none"
                   : `translateX(${bubbleOffset.x}px) translateY(${bubbleOffset.y}px)`,
               }}
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25 }}
             >
-              <div className="relative w-[min(78vw,320px)] min-w-[200px] rounded-2xl bg-card/90 border border-border/50 shadow-md backdrop-blur-md px-3.5 md:px-4 py-3">
+              <div className="relative w-[min(80vw,320px)] min-w-[200px] rounded-2xl bg-card/90 border border-border/50 shadow-md backdrop-blur-md px-3.5 md:px-4 py-3">
                 <p className="text-sm md:text-base leading-relaxed text-foreground/85 whitespace-pre-wrap break-words">
                   {bubbleText}
                 </p>
@@ -245,7 +245,7 @@ export default function HomePage() {
 
       </div>
 
-      <div className="mobile-shell pb-[calc(env(safe-area-inset-bottom,0px)+5.9rem)] md:pb-6">
+      <div className="mobile-shell pb-[calc(env(safe-area-inset-bottom,0px)+5rem)] md:pb-6">
         <AIChat onAsk={askAI} thinking={thinking} error={error} />
       </div>
     </div>

@@ -47,16 +47,6 @@ const navItems = [
     ),
   },
   {
-    label: "私信",
-    href: "/messages",
-    icon: (active: boolean) => (
-      <svg className={`w-6 h-6 ${active ? "text-primary" : "text-muted-foreground"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-        <polyline points="22,6 12,13 2,6" />
-      </svg>
-    ),
-  },
-  {
     label: "镜心",
     href: "/profile",
     icon: (active: boolean) => (
@@ -102,7 +92,6 @@ export function BottomNav({ forceHide = false }: { forceHide?: boolean }) {
         <div className="flex items-center justify-around">
           {navItems.map((item) => {
             const isActive = pathname === item.href
-            const showBadge = item.href === '/messages' && unread > 0
             return (
               <Link key={item.href} href={item.href} className="flex-1">
                 <motion.div
@@ -118,11 +107,6 @@ export function BottomNav({ forceHide = false }: { forceHide?: boolean }) {
                     >
                       {item.icon(isActive)}
                     </motion.div>
-                    {showBadge && (
-                      <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
-                        {unread > 9 ? '9+' : unread}
-                      </span>
-                    )}
                   </div>
                   <span className={`text-[11px] mt-1.5 ${isActive ? "text-primary font-medium" : "text-muted-foreground"}`}>
                     {item.label}
