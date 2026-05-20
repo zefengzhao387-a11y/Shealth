@@ -22,7 +22,7 @@ export function Footer({ showCTA = true }: { showCTA?: boolean }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}
             >
-              立即体验<span className="mx-1">花间塑</span>
+              立即体验<span className="mx-1">她健康</span>
             </motion.button>
           </Link>
         </div>
@@ -31,9 +31,9 @@ export function Footer({ showCTA = true }: { showCTA?: boolean }) {
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-2">
           <span className="text-2xl font-brand bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent tracking-wider">
-            花间塑
+            她健康
           </span>
-          <span className="text-xs md:text-sm font-semibold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">FloraMotion</span>
+          <span className="text-xs md:text-sm font-semibold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Shealth</span>
           <span className="text-sm text-muted-foreground ml-2">
             © 2024 保留所有权利
           </span>

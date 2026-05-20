@@ -259,7 +259,7 @@ function WorkoutPlayer({ course, onClose }: { course: Course; onClose: () => voi
 
       {/* 详情视图 */}
       {phase === 'detail' && (
-        <div className="h-full overflow-y-auto pt-16 pb-8 px-4">
+        <div className="h-full overflow-y-auto pt-24 md:pt-16 pb-8 px-4">
           <div className="max-w-lg mx-auto">
             {/* 封面 */}
             <motion.div

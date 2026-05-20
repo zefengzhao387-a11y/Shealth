@@ -531,7 +531,7 @@ export default function CommunityPage() {
       <BackgroundEffects density="light" />
       <Navigation />
 
-      <div className="relative z-10 pt-16 px-3">
+      <div className="relative z-10 pt-24 md:pt-16 px-3">
         <div className="max-w-2xl mx-auto">
           <motion.div className="mb-4 px-1" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
             <h1 className="text-[26px] font-semibold text-foreground tracking-tight">繁花社区</h1>

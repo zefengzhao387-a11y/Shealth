@@ -597,7 +597,7 @@ function FriendsModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-// ── 关于花间塑 ────────────────────────────────────────────────
+// ── 关于她健康 ────────────────────────────────────────────────
 function AboutModal({ onClose }: { onClose: () => void }) {
   return (
     <>
@@ -606,8 +606,8 @@ function AboutModal({ onClose }: { onClose: () => void }) {
         initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}>
         <div className="text-center mb-5">
-          <span className="font-brand text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">花间塑</span>
-          <p className="text-xs text-muted-foreground mt-1">FloraMotion · v1.0.0</p>
+          <span className="font-brand text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">她健康</span>
+          <p className="text-xs text-muted-foreground mt-1">Shealth · v1.0.0</p>
         </div>
         <p className="text-sm text-muted-foreground text-center leading-relaxed mb-6">
           为每一位女性打造的 AI 闺蜜健身教练<br />
@@ -616,7 +616,7 @@ function AboutModal({ onClose }: { onClose: () => void }) {
         <div className="glass rounded-2xl p-4 space-y-3">
           {[
             { label: '版本', value: '1.0.0' },
-            { label: '开发团队', value: 'FloraMotion Studio' },
+            { label: '开发团队', value: 'Shealth Studio' },
             { label: '技术栈', value: 'Next.js · Supabase · Framer Motion' },
           ].map(item => (
             <div key={item.label} className="flex justify-between text-sm">
@@ -709,7 +709,7 @@ export default function ProfilePage() {
 
       <Navigation />
 
-      <div className="relative z-10 pt-16 px-3">
+      <div className="relative z-10 pt-24 md:pt-16 px-3">
         <div className="max-w-2xl mx-auto">
 
           {/* 个人头部 — 紧凑+清爽 */}
@@ -904,7 +904,7 @@ export default function ProfilePage() {
                 { label: "消息通知", icon: <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" />, onClick: () => setShowNotif(true) },
                 { label: "隐私设置", icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />, onClick: () => setShowPrivacy(true) },
                 { label: "帮助中心", icon: <><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></>, onClick: () => setShowHelp(true) },
-                { label: "关于花间塑", icon: <><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></>, onClick: () => setShowAbout(true) },
+                { label: "关于她健康", icon: <><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></>, onClick: () => setShowAbout(true) },
               ].map((item, i, arr) => (
                 <motion.button
                   key={item.label}

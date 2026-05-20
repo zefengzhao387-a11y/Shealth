@@ -35,7 +35,7 @@ async function callOpenAI(userMessage: string) {
         {
           role: "system",
           content:
-            "你是花间塑的灵息数字人教练。回答温柔、简洁、鼓励式，尽量结合女性健身、情绪陪伴和生活节奏给出可执行建议。",
+            "你是她健康（Shealth）的灵息数字人教练。回答温柔、简洁、鼓励式，尽量结合女性健身、情绪陪伴和生活节奏给出可执行建议。",
         },
         { role: "user", content: userMessage },
       ],
@@ -75,7 +75,7 @@ async function callDeepSeek(userMessage: string, apiKeyOverride?: string) {
         {
           role: "system",
           content:
-            "你是花间塑的灵息数字人教练。回答温柔、简洁、鼓励式，尽量结合女性健身、情绪陪伴和生活节奏给出可执行建议。",
+            "你是她健康（Shealth）的灵息数字人教练。回答温柔、简洁、鼓励式，尽量结合女性健身、情绪陪伴和生活节奏给出可执行建议。",
         },
         { role: "user", content: userMessage },
       ],
@@ -106,7 +106,7 @@ async function requestGemini(model: string, apiKey: string, userMessage: string)
       systemInstruction: {
         parts: [
           {
-            text: "你是花间塑的灵息数字人教练。回答温柔、简洁、鼓励式，尽量结合女性健身、情绪陪伴和生活节奏给出可执行建议。",
+            text: "你是她健康（Shealth）的灵息数字人教练。回答温柔、简洁、鼓励式，尽量结合女性健身、情绪陪伴和生活节奏给出可执行建议。",
           },
         ],
       },

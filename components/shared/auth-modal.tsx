@@ -68,7 +68,7 @@ export function AuthModal() {
               {/* Logo */}
               <div className="text-center mb-6">
                 <span className="font-brand text-3xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  花间塑
+                  她健康
                 </span>
                 <p className="text-xs text-muted-foreground mt-1">你的专属 AI 闺蜜教练</p>
               </div>

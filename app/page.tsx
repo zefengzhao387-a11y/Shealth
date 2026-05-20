@@ -102,7 +102,7 @@ function HeroButton() {
           transition={{ duration: 2, delay: 0.6, repeat: Infinity, ease: "easeOut" }}
         />
         <span className="relative z-10 flex items-center gap-2">
-          开启花间之旅
+          开启她健康之旅
           <motion.span
             animate={{ x: [0, 4, 0] }}
             transition={{ duration: 1.5, repeat: Infinity }}
@@ -152,7 +152,7 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
           >
             <span className="font-brand block text-[22vw] sm:text-[18vw] md:text-[15vw] lg:text-[13vw] leading-[0.82] bg-gradient-to-br from-primary via-[oklch(0.72_0.11_350)] to-secondary bg-clip-text text-transparent select-none">
-              花间塑
+              她健康
             </span>
           </motion.div>
         </div>
@@ -166,7 +166,7 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
             transition={{ duration: 0.7, delay: 0.55 }}
           >
             <p className="text-xl md:text-2xl lg:text-3xl font-light text-foreground/50 mb-2 tracking-widest">
-              FloraMotion
+              Shealth
             </p>
             <p className="text-sm md:text-base text-muted-foreground max-w-xs md:max-w-sm leading-relaxed mb-7">
               懂你每一个阶段的身体节奏，用最温柔的方式陪伴你变得更好。如花般绽放，如风般轻盈。
@@ -476,7 +476,7 @@ function CommunitySection() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-xl md:text-2xl font-medium text-foreground">全球花间塑社区</h2>
+          <h2 className="text-xl md:text-2xl font-medium text-foreground">全球她健康社区</h2>
           <span className="text-muted-foreground/40 text-xs font-mono tracking-widest">社区</span>
         </motion.div>
 
@@ -521,7 +521,7 @@ function AboutSection() {
           <h2 className="text-xl md:text-2xl font-medium text-foreground">
             为什么选择
             <span className="font-brand ml-2 text-2xl md:text-3xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              花间塑
+              她健康
             </span>
           </h2>
           <span className="text-muted-foreground/40 text-xs font-mono tracking-widest">关于</span>
@@ -551,7 +551,7 @@ function AboutSection() {
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
           >
-            花间塑摒弃了传统健身 App 的硬核数据和高压训练，用柔和的色彩、温暖的 AI 陪伴、精准的体态纠正，打造一个属于你的专属健身空间。
+            她健康摒弃了传统健身 App 的硬核数据和高压训练，用柔和的色彩、温暖的 AI 陪伴、精准的体态纠正，打造一个属于你的专属健身空间。
           </motion.p>
           <motion.p
             className="text-foreground/65 leading-loose text-sm md:text-base"
