@@ -7,6 +7,7 @@ import { BloomAnimation, BackgroundEffects } from "@/components/shared/effects"
 import { supabase } from "@/lib/supabase"
 import type { Post, Comment } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
+import { getDisplayName } from "@/lib/display-name"
 
 const TOPICS = [
   { id: "1", name: "21天戒糖", count: "2.3k", gradient: "from-peach/40 to-primary/30" },
@@ -46,6 +47,8 @@ function UserAvatar({ seed, size = 10 }: { seed: string; size?: number }) {
 // 帖子卡片
 interface PostWithMeta extends Post {
   username?: string | null
+  displayname?: string | null
+  display_name?: string | null
   comments_count?: number
 }
 
@@ -61,7 +64,7 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
   const [commentsCount, setCommentsCount] = useState(post.comments_count ?? 0)
   const [showBloom, setShowBloom] = useState(false)
   const [showComments, setShowComments] = useState(false)
-  const [comments, setComments] = useState<(Comment & { username?: string | null })[]>([])
+  const [comments, setComments] = useState<(Comment & { username?: string | null; displayname?: string | null; display_name?: string | null })[]>([])
   const [commentText, setCommentText] = useState('')
   const [posting, setPosting] = useState(false)
   const [showDM, setShowDM] = useState(false)
@@ -143,9 +146,9 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
       .limit(50)
     if (data && data.length > 0) {
       const { data: profs } = await supabase
-        .from('profiles').select('id, username').in('id', data.map((c: any) => c.user_id))
-      const map = new Map(profs?.map((p: any) => [p.id, p.username]) ?? [])
-      setComments(data.map((c: any) => ({ ...c, username: map.get(c.user_id) ?? null })))
+        .from('profiles').select('id, username, displayname, display_name').in('id', data.map((c: any) => c.user_id))
+      const map = new Map(profs?.map((p: any) => [p.id, getDisplayName(p)]) ?? [])
+      setComments(data.map((c: any) => ({ ...c, displayname: map.get(c.user_id) ?? null })))
       setCommentsCount(data.length)
     } else {
       setComments([])
@@ -168,7 +171,7 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
     setPosting(false)
   }
 
-  const username = post.username ?? '花间用户'
+  const username = getDisplayName(post)
   const authorSeed = post.user_id
   const tags = extractTags(post.content)
 
@@ -283,7 +286,7 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
               <div key={c.id} className="flex gap-2">
                 <UserAvatar seed={c.user_id} size={6} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-medium text-foreground mb-0.5">{c.username ?? '花间用户'}</p>
+                  <p className="text-[12px] font-medium text-foreground mb-0.5">{getDisplayName(c)}</p>
                   <p className="text-[13px] text-foreground/85 leading-snug break-words">{c.content}</p>
                 </div>
               </div>
@@ -474,7 +477,7 @@ export default function CommunityPage() {
 
       // 并行查 displayName、评论数、当前用户点赞
       const [profilesRes, commentsRes, likesRes, likesCountRes] = await Promise.all([
-        supabase.from('profiles').select('id, username').in('id', userIds),
+        supabase.from('profiles').select('id, username, displayname, display_name').in('id', userIds),
         supabase.from('comments').select('post_id').in('post_id', postIds),
         user
           ? supabase.from('post_likes').select('post_id').eq('user_id', user.id).in('post_id', postIds)
@@ -482,7 +485,7 @@ export default function CommunityPage() {
         supabase.from('post_likes').select('post_id').in('post_id', postIds),
       ])
 
-      const nameMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p.username]))
+      const nameMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, getDisplayName(p)]))
       const commentCount: Record<string, number> = {}
       ;(commentsRes.data ?? []).forEach((c: any) => {
         commentCount[c.post_id] = (commentCount[c.post_id] ?? 0) + 1
@@ -495,7 +498,7 @@ export default function CommunityPage() {
 
       const enriched = newPosts.map(p => ({
         ...p,
-        username: nameMap.get(p.user_id) ?? null,
+        displayname: nameMap.get(p.user_id) ?? null,
         comments_count: commentCount[p.id] ?? 0,
         likes_count: likeCount[p.id] ?? 0,
         liked: likedSet.has(p.id),

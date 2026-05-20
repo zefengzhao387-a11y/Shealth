@@ -9,6 +9,7 @@ import type { Dimension } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
 import { usePoints } from "@/contexts/points-context"
 import { BackgroundEffects } from "@/components/shared/effects"
+import { getDisplayName } from "@/lib/display-name"
 
 // 成就定义
 const ACHIEVEMENTS = [
@@ -333,6 +334,8 @@ type FriendStatus = 'none' | 'pending_sent' | 'pending_received' | 'accepted'
 interface FriendUser {
   id: string
   username: string | null
+  displayname?: string | null
+  display_name?: string | null
   friendship_id?: string
   status?: FriendStatus
 }
@@ -356,8 +359,8 @@ function FriendsModal({ onClose }: { onClose: () => void }) {
       .eq('status', 'accepted')
     if (data && data.length > 0) {
       const otherIds = data.map((f: any) => f.requester_id === user.id ? f.addressee_id : f.requester_id)
-      const { data: profs } = await supabase.from('profiles').select('id, username').in('id', otherIds)
-      const map = new Map((profs ?? []).map((p: any) => [p.id, p.username]))
+      const { data: profs } = await supabase.from('profiles').select('id, username, displayname, display_name').in('id', otherIds)
+      const map = new Map((profs ?? []).map((p: any) => [p.id, getDisplayName(p)]))
       setFriends(data.map((f: any) => {
         const otherId = f.requester_id === user.id ? f.addressee_id : f.requester_id
         return { id: otherId, username: map.get(otherId) ?? null, friendship_id: f.id }
@@ -376,8 +379,8 @@ function FriendsModal({ onClose }: { onClose: () => void }) {
       .eq('status', 'pending')
     if (data && data.length > 0) {
       const { data: profs } = await supabase
-        .from('profiles').select('id, username').in('id', data.map((f: any) => f.requester_id))
-      const map = new Map((profs ?? []).map((p: any) => [p.id, p.username]))
+        .from('profiles').select('id, username, displayname, display_name').in('id', data.map((f: any) => f.requester_id))
+      const map = new Map((profs ?? []).map((p: any) => [p.id, getDisplayName(p)]))
       setPendingIn(data.map((f: any) => ({
         id: f.requester_id, username: map.get(f.requester_id) ?? null, friendship_id: f.id,
       })))
@@ -396,8 +399,8 @@ function FriendsModal({ onClose }: { onClose: () => void }) {
     setLoading(true)
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, username')
-      .ilike('username', `%${query.trim()}%`)
+      .select('id, username, displayname, display_name')
+      .or(`displayname.ilike.%${query.trim()}%,display_name.ilike.%${query.trim()}%,username.ilike.%${query.trim()}%`)
       .neq('id', user.id)
       .limit(10)
 
@@ -513,7 +516,7 @@ function FriendsModal({ onClose }: { onClose: () => void }) {
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4 text-primary/70" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4" /><path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" /></svg>
                   </div>
-                  <p className="flex-1 text-sm font-medium text-foreground">{u.username ?? '花间用户'}</p>
+                  <p className="flex-1 text-sm font-medium text-foreground">{getDisplayName(u)}</p>
                   {u.status === 'accepted' && (
                     <span className="text-xs text-accent px-2.5 py-1 rounded-full bg-accent/10">已是好友</span>
                   )}
@@ -551,7 +554,7 @@ function FriendsModal({ onClose }: { onClose: () => void }) {
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4 text-primary/70" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4" /><path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" /></svg>
                   </div>
-                  <p className="flex-1 text-sm font-medium text-foreground">{u.username ?? '花间用户'}</p>
+                  <p className="flex-1 text-sm font-medium text-foreground">{getDisplayName(u)}</p>
                   <div className="flex gap-1.5">
                     <motion.button onClick={() => respond(u.friendship_id, true)}
                       className="text-xs text-primary-foreground px-3 py-1.5 rounded-full bg-gradient-to-r from-primary to-secondary"
@@ -580,7 +583,7 @@ function FriendsModal({ onClose }: { onClose: () => void }) {
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4 text-primary/70" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4" /><path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" /></svg>
                   </div>
-                  <p className="flex-1 text-sm font-medium text-foreground">{u.username ?? '花间用户'}</p>
+                  <p className="flex-1 text-sm font-medium text-foreground">{getDisplayName(u)}</p>
                   <motion.button onClick={() => removeFriend(u.friendship_id!, u.id)}
                     className="text-xs text-muted-foreground px-3 py-1.5 rounded-full bg-muted/40"
                     whileTap={{ scale: 0.93 }}>删除</motion.button>
@@ -720,7 +723,7 @@ export default function ProfilePage() {
                     </svg>
                   </motion.div>
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-[18px] font-semibold text-foreground truncate">{profile?.username ?? '花间仙子'}</h2>
+                    <h2 className="text-[18px] font-semibold text-foreground truncate">{getDisplayName(profile, '花间仙子')}</h2>
                     <p className="text-[11px] text-muted-foreground mb-1.5">Lv.{Math.floor(totalPoints / 100) + 1} · 还差 {100 - (totalPoints % 100)} 分</p>
                     <div className="h-1.5 bg-white/40 rounded-full overflow-hidden">
                       <motion.div

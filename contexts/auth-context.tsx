@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { Profile } from '@/lib/supabase'
+import { getDisplayName } from '@/lib/display-name'
 
 // 兼容最近一版哈希算法（仅用于历史账号登录回退）
 function hash32(input: string, seed: number) {
@@ -81,8 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (data) { setProfile(data); return }
     // profile 不存在（trigger 未配置）—— 从 user_metadata 补建
     const { data: { user: currUser } } = await supabase.auth.getUser()
-    const meta = (currUser?.user_metadata ?? {}) as { username?: string; display_name?: string }
-    const fallback = meta.display_name || meta.username || currUser?.email?.split('@')[0] || '花间用户'
+    const meta = (currUser?.user_metadata ?? {}) as { username?: string; display_name?: string; displayname?: string }
+    const fallback = getDisplayName(meta, currUser?.email?.split('@')[0] || '花间用户')
     const { data: created } = await supabase
       .from('profiles')
       .upsert({ id: userId, username: fallback }, { onConflict: 'id' })
@@ -159,13 +160,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const email = toInternalEmail(normalized)
     const { error, data } = await supabase.auth.signUp({
       email, password,
-      options: { data: { username: normalized, display_name: normalizedDisplayName } },
+      options: { data: { username: normalized, display_name: normalizedDisplayName, displayname: normalizedDisplayName } },
     })
     if (!error && data.user) {
       // upsert 确保 profile 存在，不依赖 trigger
       const { error: upErr } = await supabase
         .from('profiles')
-        .upsert({ id: data.user.id, username: normalizedDisplayName }, { onConflict: 'id' })
+        .upsert({ id: data.user.id, username: normalizedDisplayName, displayname: normalizedDisplayName }, { onConflict: 'id' })
       if (upErr) console.error('[signUp] profile upsert error:', upErr.code, upErr.message)
       await fetchProfile(data.user.id)
     }

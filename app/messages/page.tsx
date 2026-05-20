@@ -7,6 +7,7 @@ import { BackgroundEffects } from "@/components/shared/effects"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
 import type { Message } from "@/lib/supabase"
+import { getDisplayName } from "@/lib/display-name"
 
 interface Conversation {
   otherId: string
@@ -74,8 +75,8 @@ export default function MessagesPage() {
     if (!data) { setLoading(false); return }
 
     const otherIds = [...new Set(data.map(m => m.sender_id === user.id ? m.receiver_id : m.sender_id))]
-    const { data: profiles } = await supabase.from('profiles').select('id, username').in('id', otherIds)
-    const profileMap = new Map(profiles?.map(p => [p.id, p.username || '花间用户']) ?? [])
+    const { data: profiles } = await supabase.from('profiles').select('id, username, displayname, display_name').in('id', otherIds)
+    const profileMap = new Map(profiles?.map(p => [p.id, getDisplayName(p)]) ?? [])
 
     const convMap = new Map<string, Conversation>()
     for (const msg of data) {

@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
+import { getDisplayName } from "@/lib/display-name"
 
 export function Navigation() {
   const pathname = usePathname()
@@ -85,7 +86,7 @@ export function Navigation() {
                 </svg>
               </div>
               <span className="text-sm text-foreground/80 max-w-[80px] truncate">
-                {profile?.username ?? user.email?.split('@')[0]}
+                {getDisplayName(profile, user.email?.split('@')[0] ?? '花间用户')}
               </span>
               <svg className="w-3 h-3 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M6 9l6 6 6-6" />
