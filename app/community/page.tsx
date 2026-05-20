@@ -384,7 +384,8 @@ function SendDMModal({ toUserId, toUsername, onClose }: { toUserId: string; toUs
 // 发帖弹窗
 function CreatePostModal({ onClose, onPosted, defaultTag }: { onClose: () => void; onPosted: () => void; defaultTag?: string }) {
   const { user } = useAuth()
-  const [content, setContent] = useState(defaultTag ? `${defaultTag} ` : '')
+  const initialTag = typeof defaultTag === 'string' && defaultTag.trim().startsWith('#') ? defaultTag.trim() : ''
+  const [content, setContent] = useState(initialTag ? `${initialTag} ` : '')
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState('')
 
@@ -556,7 +557,7 @@ export default function CommunityPage() {
             <motion.button
               className="w-full bg-card/70 backdrop-blur-sm rounded-full px-4 py-2.5 flex items-center gap-2.5 mb-4 text-left border border-border/40"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
-              onClick={handleCreatePost}
+              onClick={() => handleCreatePost()}
               whileTap={{ scale: 0.99 }}
             >
               <UserAvatar seed={user.id} size={7} />
@@ -585,7 +586,7 @@ export default function CommunityPage() {
               <p className="text-sm text-muted-foreground mb-6">成为第一个分享故事的人吧</p>
               <motion.button
                 className="px-6 py-3 rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium"
-                onClick={handleCreatePost}
+                onClick={() => handleCreatePost()}
                 whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
               >
                 {user ? '发布第一条动态' : '登录后发布'}
@@ -618,7 +619,7 @@ export default function CommunityPage() {
       {/* 发帖悬浮按钮 */}
       <motion.button
         className="fixed bottom-8 right-4 z-[59] w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg"
-        onClick={handleCreatePost}
+        onClick={() => handleCreatePost()}
         whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}
         initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.5 }}
         style={{ boxShadow: "0 4px 20px rgba(255,182,193,0.5)" }}
