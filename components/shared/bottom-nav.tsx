@@ -96,9 +96,9 @@ export function BottomNav({ forceHide = false }: { forceHide?: boolean }) {
       initial={{ y: 100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="fixed bottom-0 left-0 right-0 z-50 pb-safe"
+      className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
     >
-      <div className="mx-4 mb-4 rounded-2xl px-2 py-2 bg-card border border-border/60 shadow-lg">
+      <div className="mx-3 mb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] rounded-3xl px-2 py-2.5 bg-card/94 backdrop-blur-xl border border-border/60 shadow-[0_12px_34px_rgba(54,35,67,0.14)]">
         <div className="flex items-center justify-around">
           {navItems.map((item) => {
             const isActive = pathname === item.href
@@ -106,7 +106,9 @@ export function BottomNav({ forceHide = false }: { forceHide?: boolean }) {
             return (
               <Link key={item.href} href={item.href} className="flex-1">
                 <motion.div
-                  className={`flex flex-col items-center py-2 px-1 rounded-xl transition-colors relative ${isActive ? "bg-primary/10" : ""}`}
+                  className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-2xl transition-colors relative min-h-14 ${
+                    isActive ? "bg-gradient-to-b from-primary/14 to-secondary/10" : "hover:bg-white/35"
+                  }`}
                   whileTap={{ scale: 0.95 }}
                 >
                   <div className="relative">
@@ -117,18 +119,18 @@ export function BottomNav({ forceHide = false }: { forceHide?: boolean }) {
                       {item.icon(isActive)}
                     </motion.div>
                     {showBadge && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
+                      <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
                         {unread > 9 ? '9+' : unread}
                       </span>
                     )}
                   </div>
-                  <span className={`text-xs mt-1 ${isActive ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                  <span className={`text-[11px] mt-1.5 ${isActive ? "text-primary font-medium" : "text-muted-foreground"}`}>
                     {item.label}
                   </span>
                   {isActive && (
                     <motion.div
                       layoutId="activeTab"
-                      className="absolute -bottom-1 w-8 h-1 rounded-full bg-gradient-to-r from-primary to-secondary"
+                      className="absolute bottom-0.5 w-8 h-1 rounded-full bg-gradient-to-r from-primary to-secondary"
                     />
                   )}
                 </motion.div>

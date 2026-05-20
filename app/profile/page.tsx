@@ -703,18 +703,18 @@ export default function ProfilePage() {
   const latestDim = dimensions[0]
 
   return (
-    <main className="relative min-h-screen pb-32">
+    <main className="relative min-h-screen pb-[calc(env(safe-area-inset-bottom,0px)+7.5rem)] md:pb-32">
       <div className="fixed inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 -z-10" />
       <BackgroundEffects density="light" />
 
       <Navigation />
 
-      <div className="relative z-10 pt-24 md:pt-16 px-3">
+      <div className="relative z-10 pt-24 md:pt-16 mobile-shell">
         <div className="max-w-2xl mx-auto">
 
           {/* 个人头部 — 紧凑+清爽 */}
           <motion.div className="mb-5" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-primary/15 via-secondary/8 to-lilac/15 border border-white/30">
+            <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-primary/15 via-secondary/8 to-lilac/15 border border-white/30 premium-card">
               <div className="p-4">
                 <div className="flex items-center gap-3.5">
                   <motion.div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/60 to-secondary/60 flex items-center justify-center flex-shrink-0 shadow-lg" whileTap={{ scale: 0.95 }}>
@@ -737,13 +737,13 @@ export default function ProfilePage() {
                 </div>
 
                 {/* 统计 — 横向数字 */}
-                <div className="grid grid-cols-3 gap-2 mt-4">
+              <div className="grid grid-cols-3 gap-2 mt-4">
                   {[
                     { label: "连续打卡", value: streak.toString(), unit: "天" },
                     { label: "运动时长", value: totalMinutes.toString(), unit: "分" },
                     { label: "运动分", value: totalPoints.toString(), unit: "" },
                   ].map(stat => (
-                    <div key={stat.label} className="bg-white/30 backdrop-blur-sm rounded-xl py-2.5 text-center">
+                    <div key={stat.label} className="bg-white/42 backdrop-blur-sm rounded-xl py-2.5 text-center border border-white/40">
                       <p className="text-[18px] font-semibold text-foreground leading-tight">
                         {stat.value}<span className="text-[11px] font-normal text-muted-foreground ml-0.5">{stat.unit}</span>
                       </p>
@@ -801,30 +801,30 @@ export default function ProfilePage() {
                 </motion.button>
               </motion.div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {latestDim?.weight != null && dimData.weight.length > 1 && (
-                  <motion.div className="glass rounded-2xl p-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileHover={{ scale: 1.02 }}>
+                  <motion.div className="premium-card rounded-2xl p-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileHover={{ scale: 1.02 }}>
                     <p className="text-xs text-muted-foreground mb-1">体重</p>
                     <div className="flex items-baseline gap-1 mb-2"><span className="text-2xl font-medium text-foreground">{latestDim.weight}</span><span className="text-xs text-muted-foreground">kg</span></div>
                     <BezierChart data={dimData.weight} />
                   </motion.div>
                 )}
                 {latestDim?.flexibility != null && dimData.flexibility.length > 1 && (
-                  <motion.div className="glass rounded-2xl p-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} whileHover={{ scale: 1.02 }}>
+                  <motion.div className="premium-card rounded-2xl p-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} whileHover={{ scale: 1.02 }}>
                     <p className="text-xs text-muted-foreground mb-1">柔韧度</p>
                     <div className="flex items-baseline gap-1 mb-2"><span className="text-2xl font-medium text-foreground">{latestDim.flexibility}</span><span className="text-xs text-muted-foreground">分</span></div>
                     <BezierChart data={dimData.flexibility} color="secondary" />
                   </motion.div>
                 )}
                 {latestDim?.strength != null && dimData.strength.length > 1 && (
-                  <motion.div className="glass rounded-2xl p-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} whileHover={{ scale: 1.02 }}>
+                  <motion.div className="premium-card rounded-2xl p-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} whileHover={{ scale: 1.02 }}>
                     <p className="text-xs text-muted-foreground mb-1">力量感</p>
                     <div className="flex items-baseline gap-1 mb-2"><span className="text-2xl font-medium text-foreground">{latestDim.strength}</span><span className="text-xs text-muted-foreground">分</span></div>
                     <BezierChart data={dimData.strength} />
                   </motion.div>
                 )}
                 {latestDim?.endurance != null && dimData.endurance.length > 1 && (
-                  <motion.div className="glass rounded-2xl p-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} whileHover={{ scale: 1.02 }}>
+                  <motion.div className="premium-card rounded-2xl p-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} whileHover={{ scale: 1.02 }}>
                     <p className="text-xs text-muted-foreground mb-1">耐力</p>
                     <div className="flex items-baseline gap-1 mb-2"><span className="text-2xl font-medium text-foreground">{latestDim.endurance}</span><span className="text-xs text-muted-foreground">分</span></div>
                     <BezierChart data={dimData.endurance} color="secondary" />
@@ -899,7 +899,7 @@ export default function ProfilePage() {
 
           {/* 设置 */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-            <div className="bg-card/70 backdrop-blur-sm border border-border/40 rounded-2xl overflow-hidden">
+            <div className="premium-card rounded-2xl overflow-hidden">
               {[
                 { label: "消息通知", icon: <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" />, onClick: () => setShowNotif(true) },
                 { label: "隐私设置", icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />, onClick: () => setShowPrivacy(true) },

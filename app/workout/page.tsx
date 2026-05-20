@@ -108,11 +108,11 @@ function fmtTime(s: number) {
 
 function CategoryTabs({ active, onChange }: { active: CourseCategory; onChange: (c: CourseCategory) => void }) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
       {categories.map(cat => (
         <motion.button
           key={cat.id}
-          className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all ${
+          className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all snap-start ${
             active === cat.id
               ? "bg-gradient-to-r from-primary to-secondary text-primary-foreground"
               : "glass text-muted-foreground hover:text-foreground"
@@ -132,7 +132,7 @@ function CourseCard({ course, index, onClick }: { course: Course; index: number;
   const [hovered, setIsHovered] = useState(false)
   return (
     <motion.div
-      className={`relative rounded-3xl overflow-hidden cursor-pointer bg-gradient-to-br ${course.gradient}`}
+      className={`relative rounded-3xl overflow-hidden cursor-pointer bg-gradient-to-br ${course.gradient} premium-card`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.08 }}
@@ -473,19 +473,19 @@ function TodayRecommend({ onStart }: { onStart: (c: Course) => void }) {
     <motion.div className="mb-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
       <h2 className="text-base font-medium text-foreground mb-3">今日推荐</h2>
       <motion.div
-        className={`relative rounded-3xl overflow-hidden bg-gradient-to-br ${recommend.gradient} p-5 cursor-pointer`}
+        className={`relative rounded-3xl overflow-hidden bg-gradient-to-br ${recommend.gradient} p-4 md:p-5 cursor-pointer premium-card`}
         whileHover={{ scale: 1.01 }} onClick={() => onStart(recommend)}
       >
-        <div className="flex items-center gap-4">
-          <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${recommend.thumbnail} flex items-center justify-center flex-shrink-0`}>
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br ${recommend.thumbnail} flex items-center justify-center flex-shrink-0`}>
             <motion.div className="w-12 h-12 rounded-full bg-white/50 flex items-center justify-center" animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
               <svg className="w-5 h-5 text-primary ml-0.5" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
             </motion.div>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-xs text-primary mb-1 font-medium">AI 智能推荐</p>
-            <h3 className="font-medium text-foreground mb-1">{recommend.title}</h3>
-            <p className="text-xs text-muted-foreground">{recommend.durationMinutes} 分钟 · {recommend.difficulty} · {recommend.instructor}</p>
+            <h3 className="font-medium text-foreground mb-1 truncate">{recommend.title}</h3>
+            <p className="text-xs text-muted-foreground line-clamp-1">{recommend.durationMinutes} 分钟 · {recommend.difficulty} · {recommend.instructor}</p>
             <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-xs text-primary">
               +{recommend.points} 运动分
             </div>
@@ -509,15 +509,15 @@ export default function WorkoutPage() {
   const filtered = activeCategory === "all" ? courses : courses.filter(c => c.category === activeCategory)
 
   return (
-    <main className="relative min-h-screen pb-32">
+    <main className="relative min-h-screen pb-[calc(env(safe-area-inset-bottom,0px)+7.5rem)] md:pb-32">
       <div className="fixed inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 -z-10" />
       <BackgroundEffects density="light" />
       <Navigation />
 
-      <div className="relative z-10 pt-20 px-4">
+      <div className="relative z-10 pt-24 md:pt-20 mobile-shell">
         <div className="max-w-2xl mx-auto">
-          <motion.div className="mb-6" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="text-2xl font-medium text-foreground">悦动专区</h1>
+          <motion.div className="mb-5 md:mb-6" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+            <h1 className="text-[26px] md:text-2xl font-medium text-foreground tracking-tight">悦动专区</h1>
             <p className="text-sm text-muted-foreground mt-1">选择一个课程，开始今天的练习</p>
           </motion.div>
 
@@ -527,7 +527,7 @@ export default function WorkoutPage() {
             <CategoryTabs active={activeCategory} onChange={setActiveCategory} />
           </div>
 
-          <motion.div className="grid grid-cols-2 gap-4" layout>
+          <motion.div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4" layout>
             <AnimatePresence mode="popLayout">
               {filtered.map((course, i) => (
                 <motion.div key={course.id} layout>

@@ -12,6 +12,7 @@ export function Navigation() {
   const isLanding = pathname === "/"
   const { user, profile, signOut, openAuthModal } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const displayName = getDisplayName(profile, user?.email?.split("@")[0] ?? "花间用户")
 
   const navItems = isLanding
     ? [
@@ -31,7 +32,7 @@ export function Navigation() {
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
-      className="fixed top-0 left-0 right-0 z-50 px-3 py-2 md:px-6 md:py-4"
+      className="fixed top-0 left-0 right-0 z-50 px-3 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] pb-2 md:px-6 md:py-4"
     >
       <div className="max-w-6xl mx-auto hidden md:flex items-center justify-between">
         <Link href="/">
@@ -74,8 +75,9 @@ export function Navigation() {
         {user ? (
           <div className="relative">
             <motion.button
-              className="flex items-center gap-2 glass px-3 py-1.5 rounded-full"
+              className="flex min-h-11 items-center gap-2 glass px-3 py-1.5 rounded-full"
               onClick={() => setShowUserMenu(!showUserMenu)}
+              aria-expanded={showUserMenu}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -86,7 +88,7 @@ export function Navigation() {
                 </svg>
               </div>
               <span className="text-sm text-foreground/80 max-w-[80px] truncate">
-                {getDisplayName(profile, user.email?.split('@')[0] ?? '花间用户')}
+                {displayName}
               </span>
               <svg className="w-3 h-3 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M6 9l6 6 6-6" />
@@ -129,26 +131,31 @@ export function Navigation() {
             </AnimatePresence>
           </div>
         ) : (
-          <motion.button
-            className="glass px-4 py-2 rounded-full text-sm text-foreground/80 hover:text-foreground transition-colors"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={isLanding ? undefined : openAuthModal}
-          >
-            {isLanding ? (
-              <Link href="/home">开始体验</Link>
-            ) : (
-              '登录'
-            )}
-          </motion.button>
+          isLanding ? (
+            <Link
+              href="/home"
+              className="glass min-h-11 px-4 py-2 rounded-full text-sm text-foreground/80 hover:text-foreground transition-colors inline-flex items-center justify-center"
+            >
+              开始体验
+            </Link>
+          ) : (
+            <motion.button
+              className="glass min-h-11 px-4 py-2 rounded-full text-sm text-foreground/80 hover:text-foreground transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={openAuthModal}
+            >
+              登录
+            </motion.button>
+          )
         )}
       </div>
 
       <div className="max-w-6xl mx-auto md:hidden">
-        <div className="flex items-center justify-between mb-2">
+        <div className="glass-strong rounded-2xl border border-white/50 px-3 py-2 flex items-center justify-between mb-2">
           <Link href="/">
             <motion.div
-              className="glass px-3 py-1.5 rounded-full flex items-center gap-1.5"
+              className="px-2 py-1 rounded-xl flex items-center gap-1.5"
               whileTap={{ scale: 0.98 }}
             >
               <span className="font-brand text-base bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
@@ -163,8 +170,9 @@ export function Navigation() {
           {user ? (
             <div className="relative">
               <motion.button
-                className="flex items-center gap-1.5 glass px-2.5 py-1.5 rounded-full"
+                className="flex min-h-11 items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-white/35 transition-colors"
                 onClick={() => setShowUserMenu(!showUserMenu)}
+                aria-expanded={showUserMenu}
                 whileTap={{ scale: 0.98 }}
               >
                 <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
@@ -174,7 +182,7 @@ export function Navigation() {
                   </svg>
                 </div>
                 <span className="text-xs text-foreground/80 max-w-[52px] truncate">
-                  {getDisplayName(profile, user.email?.split('@')[0] ?? '她健康用户')}
+                  {displayName}
                 </span>
                 <svg className="w-3 h-3 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M6 9l6 6 6-6" />
@@ -186,7 +194,7 @@ export function Navigation() {
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
                     <motion.div
-                      className="absolute right-0 top-full mt-2 w-36 glass rounded-2xl overflow-hidden shadow-xl z-20"
+                      className="absolute right-0 top-full mt-2 w-40 glass rounded-2xl overflow-hidden shadow-xl z-20"
                       initial={{ opacity: 0, y: -8, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -8, scale: 0.95 }}
@@ -210,31 +218,42 @@ export function Navigation() {
               </AnimatePresence>
             </div>
           ) : (
-            <motion.button
-              className="glass px-3 py-1.5 rounded-full text-xs text-foreground/80"
-              whileTap={{ scale: 0.98 }}
-              onClick={isLanding ? undefined : openAuthModal}
-            >
-              {isLanding ? <Link href="/home">开始体验</Link> : '登录'}
-            </motion.button>
+            isLanding ? (
+              <Link
+                href="/home"
+                className="min-h-11 px-3 py-1.5 rounded-xl text-xs text-foreground/80 inline-flex items-center justify-center"
+              >
+                开始体验
+              </Link>
+            ) : (
+              <motion.button
+                className="min-h-11 px-3 py-1.5 rounded-xl text-xs text-foreground/80"
+                whileTap={{ scale: 0.98 }}
+                onClick={openAuthModal}
+              >
+                登录
+              </motion.button>
+            )
           )}
         </div>
 
-        <div className="glass rounded-full px-3 py-1.5 flex items-center justify-around">
-          {navItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`text-xs transition-colors ${
-                pathname === item.href
-                  ? "text-primary font-medium"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
+        {isLanding && (
+          <div className="glass rounded-2xl px-2 py-1.5 grid grid-cols-3 gap-1">
+            {navItems.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`min-h-10 rounded-xl text-xs transition-colors inline-flex items-center justify-center ${
+                  pathname === item.href
+                    ? "text-primary font-medium bg-primary/10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/40"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </motion.nav>
   )

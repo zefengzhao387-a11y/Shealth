@@ -114,7 +114,7 @@ export default function HomePage() {
       x: Math.floor(Math.random() * 30) - 15,
       y: Math.floor(Math.random() * 16) - 8,
     })
-    setBubbleSide(Math.random() > 0.5 ? "left" : "right")
+    setBubbleSide(isMobile ? "right" : (Math.random() > 0.5 ? "left" : "right"))
 
     try {
       const res = await fetch("/api/ai-chat", {
@@ -146,6 +146,10 @@ export default function HomePage() {
     ),
   )
 
+  const bubbleAlignmentClass = isMobile
+    ? "left-1/2 -translate-x-1/2"
+    : (bubbleSide === "right" ? "left-[calc(100%+16px)]" : "right-[calc(100%+16px)]")
+
   return (
     <div className="h-screen overflow-hidden bg-background flex flex-col relative">
       {/* 背景光晕 */}
@@ -164,7 +168,7 @@ export default function HomePage() {
       <Navigation />
 
       {/* ── 数字人区域：撑满剩余高度 ── */}
-      <div className="flex-1 relative pt-14 overflow-hidden">
+      <div className="flex-1 relative pt-24 md:pt-16 overflow-hidden">
         {/* AI 教练头像 —— 居中大圆 */}
         <div className="w-full h-full flex items-center justify-center">
           <motion.div
@@ -174,35 +178,37 @@ export default function HomePage() {
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <motion.div
-              className={`absolute z-20 pointer-events-none ${
-                bubbleSide === "right" ? "left-[calc(100%+16px)]" : "right-[calc(100%+16px)]"
-              }`}
+              className={`absolute z-20 pointer-events-none ${bubbleAlignmentClass}`}
               style={{
                 top: `${headAnchorTop}%`,
-                transform: `translateX(${bubbleOffset.x}px) translateY(${bubbleOffset.y}px)`,
+                transform: isMobile
+                  ? `translateY(${bubbleOffset.y}px)`
+                  : `translateX(${bubbleOffset.x}px) translateY(${bubbleOffset.y}px)`,
               }}
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25 }}
             >
-              <div className="relative w-[min(66vw,320px)] min-w-[220px] rounded-2xl bg-card/90 border border-border/50 shadow-md backdrop-blur-md px-4 py-3">
+              <div className="relative w-[min(78vw,320px)] min-w-[200px] rounded-2xl bg-card/90 border border-border/50 shadow-md backdrop-blur-md px-3.5 md:px-4 py-3">
                 <p className="text-sm md:text-base leading-relaxed text-foreground/85 whitespace-pre-wrap break-words">
                   {bubbleText}
                 </p>
-                <span
-                  className={`absolute w-3 h-3 rotate-45 bg-card/90 border-border/50 ${
-                    bubbleSide === "right"
-                      ? "-left-[6px] border-l border-b"
-                      : "-right-[6px] border-r border-t"
-                  }`}
-                  style={{ top: `${pointerTopPx}px`, transform: "translateY(-50%) rotate(45deg)" }}
-                />
+                {!isMobile && (
+                  <span
+                    className={`absolute w-3 h-3 rotate-45 bg-card/90 border-border/50 ${
+                      bubbleSide === "right"
+                        ? "-left-[6px] border-l border-b"
+                        : "-right-[6px] border-r border-t"
+                    }`}
+                    style={{ top: `${pointerTopPx}px`, transform: "translateY(-50%) rotate(45deg)" }}
+                  />
+                )}
               </div>
             </motion.div>
 
             {/* 外层呼吸光环 */}
             <motion.div
-              className="w-56 h-56 md:w-72 md:h-72 rounded-full bg-gradient-to-br from-primary/20 via-secondary/15 to-accent/15"
+              className="w-52 h-52 sm:w-56 sm:h-56 md:w-72 md:h-72 rounded-full bg-gradient-to-br from-primary/20 via-secondary/15 to-accent/15"
               animate={{ scale: [1, 1.06, 1], opacity: [0.6, 0.9, 0.6] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             />
@@ -239,7 +245,7 @@ export default function HomePage() {
 
       </div>
 
-      <div className="px-4 pb-6">
+      <div className="mobile-shell pb-[calc(env(safe-area-inset-bottom,0px)+5.9rem)] md:pb-6">
         <AIChat onAsk={askAI} thinking={thinking} error={error} />
       </div>
     </div>

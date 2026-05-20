@@ -177,7 +177,7 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
 
   return (
     <motion.div
-      className="bg-card/70 backdrop-blur-sm rounded-2xl overflow-hidden mb-3 border border-border/40"
+      className="premium-card rounded-2xl overflow-hidden mb-3"
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.05, 0.3) }}
     >
@@ -231,7 +231,7 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
       )}
 
       {/* 互动栏 */}
-      <div className="px-2 pt-2 pb-1 flex items-center border-t border-border/30">
+      <div className="px-2 pt-2 pb-1 flex items-center border-t border-border/20">
         <motion.button
           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl relative active:bg-muted/40 transition-colors"
           onClick={handleLike} whileTap={{ scale: 0.96 }}
@@ -526,25 +526,25 @@ export default function CommunityPage() {
   }
 
   return (
-    <main className="relative min-h-screen pb-32">
+    <main className="relative min-h-screen pb-[calc(env(safe-area-inset-bottom,0px)+7.5rem)] md:pb-32">
       <div className="fixed inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 -z-10" />
       <BackgroundEffects density="light" />
       <Navigation />
 
-      <div className="relative z-10 pt-24 md:pt-16 px-3">
+      <div className="relative z-10 pt-24 md:pt-16 mobile-shell">
         <div className="max-w-2xl mx-auto">
           <motion.div className="mb-4 px-1" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="text-[26px] font-semibold text-foreground tracking-tight">繁花社区</h1>
+            <h1 className="text-[28px] md:text-[26px] font-semibold text-foreground tracking-tight">繁花社区</h1>
             <p className="text-[13px] text-muted-foreground mt-0.5">分享你的蜕变，与闺蜜一起成长</p>
           </motion.div>
 
           {/* 话题频道 — 横滚胶囊 */}
-          <motion.div className="mb-3 -mx-3 px-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          <motion.div className="mb-3 -mx-1 md:mx-0 px-1 md:px-0" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide snap-x snap-mandatory">
               {TOPICS.map((topic, i) => (
                 <motion.button
                   key={topic.id}
-                  className={`flex-shrink-0 px-4 py-2 rounded-full bg-gradient-to-r ${topic.gradient} text-[13px] font-medium text-foreground/90 border border-white/30`}
+                  className={`flex-shrink-0 snap-start px-4 py-2 rounded-full bg-gradient-to-r ${topic.gradient} text-[13px] font-medium text-foreground/90 border border-white/30`}
                   initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleCreatePost(`#${topic.name}`)}
@@ -558,7 +558,7 @@ export default function CommunityPage() {
           {/* 发帖入口（已登录用户显示） */}
           {user && (
             <motion.button
-              className="w-full bg-card/70 backdrop-blur-sm rounded-full px-4 py-2.5 flex items-center gap-2.5 mb-4 text-left border border-border/40"
+              className="w-full premium-card rounded-full px-4 py-2.5 flex items-center gap-2.5 mb-4 text-left"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
               onClick={() => handleCreatePost()}
               whileTap={{ scale: 0.99 }}
@@ -621,7 +621,7 @@ export default function CommunityPage() {
 
       {/* 发帖悬浮按钮 */}
       <motion.button
-        className="fixed bottom-8 right-4 z-[59] w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] md:bottom-8 right-4 z-[59] w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg"
         onClick={() => handleCreatePost()}
         whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}
         initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.5 }}

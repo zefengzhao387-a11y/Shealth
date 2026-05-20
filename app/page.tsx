@@ -82,7 +82,7 @@ function HeroButton() {
   return (
     <Link href="/home">
       <motion.button
-        className="relative group px-8 py-4 rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium overflow-hidden text-sm md:text-base"
+        className="relative group px-7 md:px-8 py-3.5 md:py-4 rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium overflow-hidden text-sm md:text-base shadow-[0_10px_26px_rgba(230,137,171,0.38)]"
         whileHover={{ scale: 1.04 }}
         whileTap={{ scale: 0.97 }}
         initial={{ opacity: 0, y: 20 }}
@@ -116,7 +116,7 @@ function HeroButton() {
 // ── Hero 区（awwwards 大字排版） ────────────────────────────
 function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
   return (
-    <div className="relative h-full flex flex-col overflow-hidden px-6 md:px-12 pt-20">
+    <div className="relative h-full flex flex-col overflow-hidden px-4 sm:px-6 md:px-12 pt-16 sm:pt-20">
       {/* 流动渐变背景 */}
       <div className="absolute inset-0 bg-gradient-to-br from-cream via-peach/8 to-lilac/15 animate-gradient" />
 
@@ -128,7 +128,7 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
       <div className="relative z-10 flex-1 flex flex-col justify-center max-w-7xl mx-auto w-full">
         {/* Eyebrow label */}
         <motion.div
-          className="flex items-center gap-3 mb-5 md:mb-7"
+          className="flex items-center gap-2.5 md:gap-3 mb-4 md:mb-7"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
@@ -139,7 +139,7 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
             animate={{ width: 44 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           />
-          <span className="text-[10px] md:text-xs tracking-[0.35em] uppercase text-primary/60 font-medium">
+          <span className="text-[10px] md:text-xs tracking-[0.28em] md:tracking-[0.35em] uppercase text-primary/60 font-medium">
             女性专属 AI 健身教练
           </span>
         </motion.div>
@@ -151,24 +151,24 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
             animate={{ y: 0 }}
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
           >
-            <span className="font-brand block text-[22vw] sm:text-[18vw] md:text-[15vw] lg:text-[13vw] leading-[0.82] bg-gradient-to-br from-primary via-[oklch(0.72_0.11_350)] to-secondary bg-clip-text text-transparent select-none">
+            <span className="font-brand block text-[24vw] sm:text-[18vw] md:text-[15vw] lg:text-[13vw] leading-[0.82] bg-gradient-to-br from-primary via-[oklch(0.72_0.11_350)] to-secondary bg-clip-text text-transparent select-none">
               她健康
             </span>
           </motion.div>
         </div>
 
         {/* 下半区：文案 + AI 教练 */}
-        <div className="flex items-end justify-between gap-6 md:gap-12">
+        <div className="flex items-end justify-between gap-4 md:gap-12">
           <motion.div
             className="flex-1"
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.55 }}
           >
-            <p className="text-xl md:text-2xl lg:text-3xl font-light text-foreground/50 mb-2 tracking-widest">
+            <p className="text-lg md:text-2xl lg:text-3xl font-light text-foreground/50 mb-1.5 md:mb-2 tracking-[0.22em] md:tracking-widest">
               Shealth
             </p>
-            <p className="text-sm md:text-base text-muted-foreground max-w-xs md:max-w-sm leading-relaxed mb-7">
+            <p className="text-[13px] md:text-base text-muted-foreground max-w-[18rem] md:max-w-sm leading-relaxed mb-5 md:mb-7">
               懂你每一个阶段的身体节奏，用最温柔的方式陪伴你变得更好。如花般绽放，如风般轻盈。
             </p>
             <HeroButton />
@@ -186,7 +186,7 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
 
         {/* 分隔线 */}
         <motion.div
-          className="mt-7 md:mt-9 h-px bg-gradient-to-r from-transparent via-border to-transparent"
+          className="mt-6 md:mt-9 h-px soft-divider"
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ duration: 1.1, delay: 0.85 }}
@@ -194,7 +194,7 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
 
         {/* 底部数据栏 */}
         <motion.div
-          className="flex items-center gap-8 md:gap-12 py-4 md:py-5"
+          className="flex items-center gap-6 md:gap-12 py-3 md:py-5"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 1.1 }}
@@ -209,18 +209,22 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
               <div className="text-[10px] md:text-xs text-muted-foreground mt-0.5 tracking-wide">{stat.label}</div>
             </div>
           ))}
+          <div className="sm:hidden premium-card rounded-xl px-3 py-2">
+            <div className="text-sm font-semibold text-foreground">240万+ 活跃用户</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">与你一起坚持</div>
+          </div>
         </motion.div>
       </div>
 
       {/* 探索更多 — 底部绝对居中 */}
       <motion.button
         onClick={onScrollDown}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors z-10"
+        className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.4 }}
       >
-        <span className="text-[10px] tracking-[0.3em] uppercase">探索更多</span>
+        <span className="text-[10px] tracking-[0.24em] sm:tracking-[0.3em] uppercase">探索更多</span>
         <motion.div
           animate={{ y: [0, 4, 0] }}
           transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
@@ -333,6 +337,9 @@ function FeaturesSection() {
                     <h3 className="text-sm md:text-xl font-medium text-foreground mb-0.5 md:mb-1 group-hover:text-primary transition-colors duration-200">
                       {feature.title}
                     </h3>
+                    <p className="text-[11px] text-muted-foreground/85 leading-relaxed line-clamp-1 sm:hidden">
+                      {feature.description}
+                    </p>
                     <p className="text-xs md:text-sm text-muted-foreground leading-relaxed line-clamp-2 max-w-lg hidden sm:block">
                       {feature.description}
                     </p>
@@ -436,11 +443,11 @@ function HighlightsSection() {
         </motion.div>
 
         {/* Bento grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-4">
           {highlights.map((item, i) => (
             <motion.div
               key={item.title}
-              className={`glass rounded-2xl p-5 md:p-6 flex flex-col gap-4 ${
+              className={`premium-card rounded-2xl p-4 md:p-6 flex flex-col gap-3 md:gap-4 ${
                 item.large ? "col-span-2 md:col-span-1 md:row-span-2" : ""
               }`}
               initial={{ opacity: 0, y: 20 }}
@@ -607,17 +614,17 @@ function CTASection() {
               isFocused ? "opacity-100" : "opacity-40"
             }`}
           />
-          <div className="relative flex items-center gap-3 bg-card rounded-full px-6 py-4">
+          <div className="relative flex items-center gap-2.5 md:gap-3 bg-card rounded-full px-4 md:px-6 py-3.5 md:py-4">
             <input
               type="text"
               placeholder="告诉 AI 教练你今天想怎么动..."
-              className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground text-sm"
+              className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground text-[13px] md:text-sm"
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
             />
             <Link href="/home">
               <motion.button
-                className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-primary-foreground flex-shrink-0"
+                className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-primary-foreground flex-shrink-0"
                 whileHover={{ scale: 1.1, rotate: 10 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -651,6 +658,82 @@ function CTASection() {
             </motion.button>
           ))}
         </motion.div>
+      </div>
+    </section>
+  )
+}
+
+// ── 今日计划卡片（skill 验证区） ──────────────────────────────
+function TodayPlanSection() {
+  const planCards = [
+    {
+      title: "晨间舒缓",
+      duration: "12 分钟",
+      status: "推荐",
+      description: "轻柔拉伸与呼吸唤醒，适合起床后快速进入状态。",
+      href: "/workout",
+      accent: "bg-primary/10 text-primary",
+    },
+    {
+      title: "午间核心",
+      duration: "18 分钟",
+      status: "进阶",
+      description: "短时核心激活，保持腰腹力量与稳定感。",
+      href: "/workout",
+      accent: "bg-secondary/10 text-secondary",
+    },
+    {
+      title: "晚间助眠",
+      duration: "15 分钟",
+      status: "放松",
+      description: "低强度伸展配合冥想节奏，帮助你更快放松入睡。",
+      href: "/home",
+      accent: "bg-accent/15 text-accent",
+    },
+  ]
+
+  return (
+    <section className="relative py-14 md:py-24 px-4 md:px-12 overflow-hidden">
+      <div className="relative z-10 max-w-6xl mx-auto">
+        <motion.div
+          className="flex items-baseline justify-between pb-5 border-b border-border/30 mb-8"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+        >
+          <h2 className="text-xl md:text-2xl font-medium text-foreground">今日专属计划</h2>
+          <span className="text-muted-foreground/40 text-xs font-mono tracking-widest">计划</span>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+          {planCards.map((card, i) => (
+            <motion.article
+              key={card.title}
+              className="rounded-2xl border border-border/40 bg-card/95 p-5 md:p-6"
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.45, delay: i * 0.08 }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${card.accent}`}>
+                  {card.status}
+                </span>
+                <span className="text-xs text-muted-foreground">{card.duration}</span>
+              </div>
+
+              <h3 className="text-base md:text-lg font-medium text-foreground mb-2">{card.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-5">{card.description}</p>
+
+              <Link
+                href={card.href}
+                className="inline-flex items-center justify-center rounded-xl bg-foreground text-background px-4 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+              >
+                开始训练
+              </Link>
+            </motion.article>
+          ))}
+        </div>
       </div>
     </section>
   )
@@ -746,7 +829,7 @@ export default function LandingPage() {
           <motion.div
             key="content"
             ref={contentRef}
-            className="absolute inset-0 overflow-y-auto bg-background"
+            className="absolute inset-0 overflow-y-auto bg-background pb-[calc(env(safe-area-inset-bottom,0px)+5.8rem)] md:pb-0"
             initial={{ opacity: 0, y: 100, rotateX: -10, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100 }}
@@ -754,10 +837,10 @@ export default function LandingPage() {
             style={{ transformOrigin: "center bottom", transformPerspective: 1400 }}
           >
             {/* 返回按钮 */}
-            <div className="sticky top-0 z-20 flex justify-center pt-20 pointer-events-none">
+            <div className="sticky top-0 z-20 flex justify-center pt-20 md:pt-20 pointer-events-none">
               <motion.button
                 onClick={goToHero}
-                className="pointer-events-auto flex items-center gap-1.5 px-4 py-1.5 rounded-full glass-strong text-xs text-muted-foreground hover:text-foreground transition-colors shadow-sm"
+                className="pointer-events-auto hidden md:flex items-center gap-1.5 px-4 py-1.5 rounded-full glass-strong text-xs text-muted-foreground hover:text-foreground transition-colors shadow-sm"
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
@@ -770,9 +853,10 @@ export default function LandingPage() {
               </motion.button>
             </div>
 
-            <div className="-mt-16">
+            <div className="-mt-16 md:-mt-16">
               <FeaturesSection />
               <HighlightsSection />
+              <TodayPlanSection />
               <CommunitySection />
               <AboutSection />
               <CTASection />

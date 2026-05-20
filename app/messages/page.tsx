@@ -178,11 +178,11 @@ export default function MessagesPage() {
   }
 
   return (
-    <main className="relative min-h-screen pb-20">
+    <main className="relative min-h-screen pb-[calc(env(safe-area-inset-bottom,0px)+7rem)] md:pb-20">
       <div className="fixed inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 -z-10" />
       <BackgroundEffects density="light" />
 
-      <div className="relative z-10 pt-3 h-screen flex flex-col">
+      <div className="relative z-10 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] h-screen flex flex-col">
         <AnimatePresence mode="wait">
           {selected ? (
             /* ── 聊天界面 ── */
@@ -271,7 +271,7 @@ export default function MessagesPage() {
               initial={{ opacity: 0, x: -60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
             >
-              <div className="px-4 pb-4">
+              <div className="mobile-shell pb-4">
                 <div className="mb-5 pt-2">
                   <div className="flex items-center gap-3 mb-2">
                     <motion.button
