@@ -4,21 +4,35 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
 
+function getUsernameHint(username: string): string {
+  const normalized = username.trim()
+  if (!normalized) return "用户名用于登录和页面展示"
+  if (normalized.length < 2 || normalized.length > 24) return "用户名需为 2-24 个字符"
+  if (!/^[\u4e00-\u9fa5a-zA-Z0-9_]+$/.test(normalized)) return "仅支持中文、英文、数字、下划线"
+  return "用户名格式可用"
+}
+
 export function AuthModal() {
   const { showAuthModal, closeAuthModal, signIn, signUp } = useAuth()
   const [tab, setTab] = useState<'login' | 'register'>('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const usernameHint = getUsernameHint(username)
+  const usernameValid = username.trim() !== '' && usernameHint === "用户名格式可用"
 
-  const reset = () => { setError(''); setUsername(''); setPassword('') }
+  const reset = () => { setError(''); setUsername(''); setPassword(''); setConfirmPassword('') }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (!username.trim()) { setError('请输入账号名'); return }
+    if (!username.trim()) { setError('请输入用户名'); return }
+    if (!/^[\u4e00-\u9fa5a-zA-Z0-9_]+$/.test(username.trim())) { setError('用户名仅支持中文、英文、数字、下划线'); return }
+    if (username.trim().length < 2 || username.trim().length > 24) { setError('用户名需为 2-24 个字符'); return }
     if (!password) { setError('请输入密码'); return }
+    if (tab === 'register' && password !== confirmPassword) { setError('两次输入的密码不一致'); return }
     setLoading(true)
 
     if (tab === 'login') {
@@ -76,12 +90,15 @@ export function AuthModal() {
               <form onSubmit={handleSubmit} className="space-y-3">
                 <input
                   type="text"
-                  placeholder="账号名"
+                  placeholder="用户名（进入网页显示名）"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   autoComplete="username"
                   className="w-full px-4 py-3 rounded-2xl bg-muted/60 border border-border/30 outline-none text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 transition-colors"
                 />
+                <p className={`-mt-1 px-1 text-xs ${usernameValid ? "text-accent" : "text-muted-foreground"}`}>
+                  {usernameHint}
+                </p>
                 <input
                   type="password"
                   placeholder={tab === 'register' ? '密码（至少 6 位）' : '密码'}
@@ -90,6 +107,16 @@ export function AuthModal() {
                   autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
                   className="w-full px-4 py-3 rounded-2xl bg-muted/60 border border-border/30 outline-none text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 transition-colors"
                 />
+                {tab === 'register' && (
+                  <input
+                    type="password"
+                    placeholder="确认密码"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    className="w-full px-4 py-3 rounded-2xl bg-muted/60 border border-border/30 outline-none text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 transition-colors"
+                  />
+                )}
 
                 {error && (
                   <motion.p

@@ -7,8 +7,18 @@ import type { Profile } from '@/lib/supabase'
 
 // 用用户名构造内部邮箱，绕过邮件发送
 function toInternalEmail(username: string) {
-  const safe = username.toLowerCase().replace(/[^a-z0-9_]/g, '_')
+  const normalized = username.trim().toLowerCase()
+  const encoded = encodeURIComponent(normalized)
+    .replace(/%/g, '_')
+    .replace(/[^a-z0-9_]/g, '_')
+  const safe = encoded.slice(0, 64) || 'user'
   return `${safe}@floramotion.app`
+}
+
+// 兼容旧算法（早期仅保留 [a-z0-9_]）
+function toLegacyInternalEmail(username: string) {
+  const safe = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_')
+  return `${safe || 'user'}@floramotion.app`
 }
 
 interface AuthContextType {
@@ -26,6 +36,16 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
+
+function validateUsername(username: string): string | null {
+  const normalized = username.trim()
+  if (!normalized) return '请输入用户名'
+  if (normalized.length < 2 || normalized.length > 24) return '用户名需为 2-24 个字符'
+  if (!/^[\u4e00-\u9fa5a-zA-Z0-9_]+$/.test(normalized)) {
+    return '用户名仅支持中文、英文、数字、下划线'
+  }
+  return null
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -68,31 +88,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signIn = async (username: string, password: string) => {
-    const email = toInternalEmail(username)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (!error) setShowAuthModal(false)
-    if (error?.message.includes('Invalid login credentials')) return { error: '账号或密码错误' }
-    return { error: error?.message ?? null }
+    const normalized = username.trim()
+    const usernameError = validateUsername(normalized)
+    if (usernameError) return { error: usernameError }
+
+    const primaryEmail = toInternalEmail(normalized)
+    const legacyEmail = toLegacyInternalEmail(normalized)
+
+    const primaryRes = await supabase.auth.signInWithPassword({ email: primaryEmail, password })
+    if (!primaryRes.error) {
+      setShowAuthModal(false)
+      return { error: null }
+    }
+
+    // 旧算法与新算法邮箱不同才回退重试
+    if (legacyEmail !== primaryEmail) {
+      const legacyRes = await supabase.auth.signInWithPassword({ email: legacyEmail, password })
+      if (!legacyRes.error) {
+        setShowAuthModal(false)
+        return { error: null }
+      }
+      if (legacyRes.error?.message.includes('Invalid login credentials')) return { error: '用户名或密码错误' }
+      return { error: legacyRes.error?.message ?? null }
+    }
+
+    if (primaryRes.error?.message.includes('Invalid login credentials')) return { error: '用户名或密码错误' }
+    return { error: primaryRes.error?.message ?? null }
   }
 
   const signUp = async (username: string, password: string) => {
-    if (!username.trim()) return { error: '请输入账号名' }
+    const normalized = username.trim()
+    const usernameError = validateUsername(normalized)
+    if (usernameError) return { error: usernameError }
     if (password.length < 6) return { error: '密码至少需要 6 位' }
-    const email = toInternalEmail(username)
+
+    const email = toInternalEmail(normalized)
     const { error, data } = await supabase.auth.signUp({
       email, password,
-      options: { data: { username: username.trim() } },
+      options: { data: { username: normalized } },
     })
     if (!error && data.user) {
       // upsert 确保 profile 存在，不依赖 trigger
       const { error: upErr } = await supabase
         .from('profiles')
-        .upsert({ id: data.user.id, username: username.trim() }, { onConflict: 'id' })
+        .upsert({ id: data.user.id, username: normalized }, { onConflict: 'id' })
       if (upErr) console.error('[signUp] profile upsert error:', upErr.code, upErr.message)
       await fetchProfile(data.user.id)
     }
     if (!error) setShowAuthModal(false)
-    if (error?.message.includes('User already registered')) return { error: '该账号名已被注册' }
+    if (error?.message.includes('User already registered')) return { error: '该用户名已被注册' }
     return { error: error?.message ?? null }
   }
 
