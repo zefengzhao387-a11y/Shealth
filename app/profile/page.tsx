@@ -500,7 +500,7 @@ function FriendsModal({ onClose }: { onClose: () => void }) {
                   type="text" value={query}
                   onChange={e => setQuery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && searchUsers()}
-                  placeholder="输入 displayName 搜索..."
+                  placeholder="输入昵称搜索..."
                   className="flex-1 px-4 py-2.5 rounded-xl bg-muted/60 border border-border/30 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/40 transition-colors"
                 />
                 <motion.button

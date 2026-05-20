@@ -6,10 +6,10 @@ import { useAuth } from "@/contexts/auth-context"
 
 function getUsernameHint(username: string): string {
   const normalized = username.trim()
-  if (!normalized) return "用户名用于登录（仅英文、数字、下划线）"
-  if (normalized.length < 2 || normalized.length > 24) return "用户名需为 2-24 个字符"
+  if (!normalized) return "账号用于登录（仅英文、数字、下划线）"
+  if (normalized.length < 2 || normalized.length > 24) return "账号需为 2-24 个字符"
   if (!/^[a-zA-Z0-9_]+$/.test(normalized)) return "仅支持英文、数字、下划线（不支持中文）"
-  return "用户名格式可用"
+  return "账号格式可用"
 }
 
 export function AuthModal() {
@@ -22,17 +22,17 @@ export function AuthModal() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const usernameHint = getUsernameHint(username)
-  const usernameValid = username.trim() !== '' && usernameHint === "用户名格式可用"
+  const usernameValid = username.trim() !== '' && usernameHint === "账号格式可用"
 
   const reset = () => { setError(''); setUsername(''); setDisplayName(''); setPassword(''); setConfirmPassword('') }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (!username.trim()) { setError('请输入用户名'); return }
-    if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) { setError('用户名仅支持英文、数字、下划线（不支持中文）'); return }
-    if (username.trim().length < 2 || username.trim().length > 24) { setError('用户名需为 2-24 个字符'); return }
-    if (tab === 'register' && !displayName.trim()) { setError('请填写 displayName'); return }
+    if (tab === 'register' && !displayName.trim()) { setError('请填写昵称'); return }
+    if (!username.trim()) { setError('请输入账号'); return }
+    if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) { setError('账号仅支持英文、数字、下划线（不支持中文）'); return }
+    if (username.trim().length < 2 || username.trim().length > 24) { setError('账号需为 2-24 个字符'); return }
     if (!password) { setError('请输入密码'); return }
     if (tab === 'register' && password !== confirmPassword) { setError('两次输入的密码不一致'); return }
     setLoading(true)
@@ -90,9 +90,18 @@ export function AuthModal() {
 
               {/* 表单 */}
               <form onSubmit={handleSubmit} className="space-y-3">
+                {tab === 'register' && (
+                  <input
+                    type="text"
+                    placeholder="昵称（必填，可用中文和任意字符）"
+                    value={displayName}
+                    onChange={e => setDisplayName(e.target.value)}
+                    className="w-full px-4 py-3 rounded-2xl bg-muted/60 border border-border/30 outline-none text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 transition-colors"
+                  />
+                )}
                 <input
                   type="text"
-                  placeholder="用户名（登录用，仅英文/数字/下划线）"
+                  placeholder="账号（登录用，仅英文/数字/下划线）"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   autoComplete="username"
@@ -101,15 +110,6 @@ export function AuthModal() {
                 <p className={`-mt-1 px-1 text-xs ${usernameValid ? "text-accent" : "text-muted-foreground"}`}>
                   {usernameHint}
                 </p>
-                {tab === 'register' && (
-                  <input
-                    type="text"
-                    placeholder="displayName（必填，可用中文和任意字符）"
-                    value={displayName}
-                    onChange={e => setDisplayName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-2xl bg-muted/60 border border-border/30 outline-none text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 transition-colors"
-                  />
-                )}
                 <input
                   type="password"
                   placeholder={tab === 'register' ? '密码（至少 6 位）' : '密码'}

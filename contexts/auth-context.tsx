@@ -62,10 +62,10 @@ const AuthContext = createContext<AuthContextType | null>(null)
 
 function validateUsername(username: string): string | null {
   const normalized = username.trim()
-  if (!normalized) return '请输入用户名'
-  if (normalized.length < 2 || normalized.length > 24) return '用户名需为 2-24 个字符'
+  if (!normalized) return '请输入账号'
+  if (normalized.length < 2 || normalized.length > 24) return '账号需为 2-24 个字符'
   if (!/^[a-zA-Z0-9_]+$/.test(normalized)) {
-    return '用户名仅支持英文、数字、下划线（不支持中文）'
+    return '账号仅支持英文、数字、下划线（不支持中文）'
   }
   return null
 }
@@ -142,7 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    if (primaryRes.error?.message.includes('Invalid login credentials')) return { error: '用户名或密码错误' }
+    if (primaryRes.error?.message.includes('Invalid login credentials')) return { error: '账号或密码错误' }
     if (primaryRes.error?.message.includes('Email address') && primaryRes.error?.message.includes('invalid')) {
       return { error: '账号系统映射异常，请稍后重试' }
     }
@@ -154,7 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const usernameError = validateUsername(normalized)
     if (usernameError) return { error: usernameError }
     const normalizedDisplayName = displayName.trim()
-    if (!normalizedDisplayName) return { error: '请输入 displayName' }
+    if (!normalizedDisplayName) return { error: '请输入昵称' }
     if (password.length < 6) return { error: '密码至少需要 6 位' }
 
     const email = toInternalEmail(normalized)
@@ -171,9 +171,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await fetchProfile(data.user.id)
     }
     if (!error) setShowAuthModal(false)
-    if (error?.message.includes('User already registered')) return { error: '该用户名已被注册' }
+    if (error?.message.includes('User already registered')) return { error: '该账号已被注册' }
     if (error?.message.includes('Email address') && error?.message.includes('invalid')) {
-      return { error: '账号系统映射异常，请更换用户名后重试' }
+      return { error: '账号系统映射异常，请更换账号后重试' }
     }
     return { error: error?.message ?? null }
   }
