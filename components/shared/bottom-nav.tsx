@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
+import { TAP_SPRING } from "@/lib/motion-presets"
 
 const navItems = [
   {
@@ -95,10 +96,10 @@ export function BottomNav({ forceHide = false }: { forceHide?: boolean }) {
             return (
               <Link key={item.href} href={item.href} className="flex-1">
                 <motion.div
-                  className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-2xl transition-colors relative min-h-14 ${
-                    isActive ? "bg-gradient-to-b from-primary/14 to-secondary/10" : "hover:bg-white/35"
+                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-colors relative min-h-[3.25rem] touch-target ${
+                    isActive ? "bg-gradient-to-b from-primary/14 to-secondary/10" : "active:bg-white/40"
                   }`}
-                  whileTap={{ scale: 0.95 }}
+                  whileTap={TAP_SPRING}
                 >
                   <div className="relative">
                     <motion.div

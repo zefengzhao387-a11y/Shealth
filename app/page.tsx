@@ -8,6 +8,7 @@ import { Petal, Sparkle, Ripple, BackgroundEffects } from "@/components/shared/e
 import { LiveStatsBoard } from "@/components/shared/live-stats"
 import { CommunityShowcase } from "@/components/shared/community-showcase"
 import Link from "next/link"
+import { TAP_SPRING } from "@/lib/motion-presets"
 
 // ── Grain overlay ──────────────────────────────────────────
 function GrainOverlay() {
@@ -83,8 +84,7 @@ function HeroButton() {
     <Link href="/home">
       <motion.button
         className="relative group px-7 md:px-8 py-3.5 md:py-4 rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium overflow-hidden text-sm md:text-base shadow-[0_10px_26px_rgba(230,137,171,0.38)]"
-        whileHover={{ scale: 1.04 }}
-        whileTap={{ scale: 0.97 }}
+        whileTap={TAP_SPRING}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.9 }}
@@ -151,7 +151,7 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
             animate={{ y: 0 }}
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
           >
-            <span className="font-brand block text-[24vw] sm:text-[18vw] md:text-[15vw] lg:text-[13vw] leading-[0.82] bg-gradient-to-br from-primary via-[oklch(0.72_0.11_350)] to-secondary bg-clip-text text-transparent select-none">
+            <span className="font-brand block fluid-display md:text-[15vw] lg:text-[13vw] bg-gradient-to-br from-primary via-[oklch(0.72_0.11_350)] to-secondary bg-clip-text text-transparent select-none tracking-tight">
               她健康
             </span>
           </motion.div>
@@ -168,7 +168,7 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
             <p className="text-lg md:text-2xl lg:text-3xl font-light text-foreground/50 mb-1.5 md:mb-2 tracking-[0.22em] md:tracking-widest">
               Shealth
             </p>
-            <p className="text-[13px] md:text-base text-muted-foreground max-w-[18rem] md:max-w-sm leading-relaxed mb-5 md:mb-7">
+            <p className="fluid-body text-muted-foreground max-w-[18rem] md:max-w-sm mb-5 md:mb-7">
               懂你每一个阶段的身体节奏，用最温柔的方式陪伴你变得更好。如花般绽放，如风般轻盈。
             </p>
             <HeroButton />
@@ -219,10 +219,11 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
       {/* 探索更多 — 底部绝对居中 */}
       <motion.button
         onClick={onScrollDown}
-        className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors z-10"
+        className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 min-h-12 min-w-[7rem] text-muted-foreground/50 active:text-muted-foreground transition-colors z-10 touch-target"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.4 }}
+        whileTap={TAP_SPRING}
       >
         <span className="text-[10px] tracking-[0.24em] sm:tracking-[0.3em] uppercase">探索更多</span>
         <motion.div
@@ -305,7 +306,7 @@ function FeaturesSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-xl md:text-2xl font-medium text-foreground">四大核心模块</h2>
+          <h2 className="fluid-title font-medium text-foreground">四大核心模块</h2>
           <span className="text-muted-foreground/40 text-xs font-mono tracking-widest">功能 · 04</span>
         </motion.div>
 
@@ -321,7 +322,10 @@ function FeaturesSection() {
               transition={{ duration: 0.5, delay: i * 0.08 }}
             >
               <Link href={feature.href}>
-                <div className="flex items-center gap-3 md:gap-10 py-5 md:py-9 cursor-pointer">
+                <motion.div
+                  className="flex items-center gap-3 md:gap-10 py-5 md:py-9 cursor-pointer active:bg-primary/5 rounded-2xl -mx-1 px-1"
+                  whileTap={TAP_SPRING}
+                >
                   {/* Large number */}
                   <span className="text-3xl md:text-6xl font-bold text-primary/8 group-hover:text-primary/18 transition-colors w-10 md:w-20 flex-shrink-0 font-mono text-center leading-none select-none">
                     {String(i + 1).padStart(2, "0")}
@@ -351,7 +355,7 @@ function FeaturesSection() {
                       <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
                   </div>
-                </div>
+                </motion.div>
               </Link>
             </motion.div>
           ))}
@@ -438,17 +442,38 @@ function HighlightsSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-xl md:text-2xl font-medium text-foreground">为你量身定制的温柔功能</h2>
+          <h2 className="fluid-title font-medium text-foreground">为你量身定制的温柔功能</h2>
           <span className="text-muted-foreground/40 text-xs font-mono tracking-widest">特色 · 06</span>
         </motion.div>
 
-        {/* Bento grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-4">
+        {/* 移动端横滑 / 桌面端 Bento */}
+        <div className="md:hidden -mx-4 px-4 snap-scroll-x pb-1">
           {highlights.map((item, i) => (
             <motion.div
               key={item.title}
-              className={`premium-card rounded-2xl p-4 md:p-6 flex flex-col gap-3 md:gap-4 ${
-                item.large ? "col-span-2 md:col-span-1 md:row-span-2" : ""
+              className="premium-card rounded-2xl p-4 flex flex-col gap-3 w-[78vw] max-w-[300px]"
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.05, duration: 0.4 }}
+              whileTap={TAP_SPRING}
+            >
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-secondary/15 flex items-center justify-center flex-shrink-0">
+                {item.icon}
+              </div>
+              <div>
+                <h3 className="font-medium text-foreground mb-1.5 text-sm">{item.title}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">{item.description}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+        <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-4">
+          {highlights.map((item, i) => (
+            <motion.div
+              key={item.title}
+              className={`premium-card rounded-2xl p-6 flex flex-col gap-4 ${
+                item.large ? "lg:row-span-2" : ""
               }`}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -701,15 +726,43 @@ function TodayPlanSection() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-xl md:text-2xl font-medium text-foreground">今日专属计划</h2>
+          <h2 className="fluid-title font-medium text-foreground">今日专属计划</h2>
           <span className="text-muted-foreground/40 text-xs font-mono tracking-widest">计划</span>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+        <div className="md:hidden -mx-4 px-4 snap-scroll-x pb-1">
           {planCards.map((card, i) => (
             <motion.article
               key={card.title}
-              className="rounded-2xl border border-border/40 bg-card/95 p-5 md:p-6"
+              className="rounded-2xl border border-border/40 bg-card/95 p-5 w-[82vw] max-w-[320px]"
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.45, delay: i * 0.08 }}
+              whileTap={TAP_SPRING}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${card.accent}`}>
+                  {card.status}
+                </span>
+                <span className="text-xs text-muted-foreground">{card.duration}</span>
+              </div>
+              <h3 className="text-base font-medium text-foreground mb-2">{card.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-5">{card.description}</p>
+              <Link
+                href={card.href}
+                className="touch-target inline-flex items-center justify-center rounded-xl bg-foreground text-background px-4 py-3 text-sm font-medium active:opacity-90"
+              >
+                开始训练
+              </Link>
+            </motion.article>
+          ))}
+        </div>
+        <div className="hidden md:grid grid-cols-3 gap-4">
+          {planCards.map((card, i) => (
+            <motion.article
+              key={card.title}
+              className="rounded-2xl border border-border/40 bg-card/95 p-6"
               initial={{ opacity: 0, y: 18 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -811,12 +864,8 @@ export default function LandingPage() {
     }
   }, [mounted, phase])
 
-  if (!mounted) {
-    return <div className="min-h-screen bg-gradient-to-br from-cream via-peach/10 to-lilac/20" />
-  }
-
   return (
-    <div className="h-screen overflow-hidden relative">
+    <div className="h-screen overflow-hidden relative bg-gradient-to-br from-cream via-peach/10 to-lilac/20">
       <GrainOverlay />
       <BackgroundEffects density="light" />
       <Navigation />
@@ -826,7 +875,7 @@ export default function LandingPage() {
           <motion.div
             key="hero"
             className="absolute inset-0"
-            initial={{ opacity: 0, y: 20 }}
+            initial={mounted ? { opacity: 0, y: 20 } : false}
             animate={{ opacity: 1, y: 0 }}
             exit={{
               opacity: 0,
@@ -845,7 +894,7 @@ export default function LandingPage() {
             key="content"
             ref={contentRef}
             className="absolute inset-0 overflow-y-auto bg-background pb-[calc(env(safe-area-inset-bottom,0px)+5.8rem)] md:pb-0"
-            initial={{ opacity: 0, y: 100, rotateX: -10, scale: 0.96 }}
+            initial={mounted ? { opacity: 0, y: 100, rotateX: -10, scale: 0.96 } : false}
             animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100 }}
             transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}

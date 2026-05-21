@@ -10,6 +10,8 @@ import { useAuth } from "@/contexts/auth-context"
 import { usePoints } from "@/contexts/points-context"
 import { BackgroundEffects } from "@/components/shared/effects"
 import { getDisplayName } from "@/lib/display-name"
+import { TAP_SPRING } from "@/lib/motion-presets"
+import { ResponsiveBottomSheet } from "@/components/shared/responsive-bottom-sheet"
 
 // 成就定义
 const ACHIEVEMENTS = [
@@ -61,7 +63,7 @@ function BezierChart({ data, color = "primary" }: { data: number[]; color?: stri
 }
 
 // 维度录入弹窗
-function DimensionModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+function DimensionModal({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: () => void }) {
   const { user } = useAuth()
   const [form, setForm] = useState({ weight: '', height: '', flexibility: '', strength: '', endurance: '' })
   const [saving, setSaving] = useState(false)
@@ -93,50 +95,40 @@ function DimensionModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
   ]
 
   return (
-    <>
-      <motion.div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-      <motion.div
-        className="fixed inset-x-4 bottom-4 z-[61] bg-card/95 backdrop-blur-xl rounded-3xl p-5 shadow-2xl border border-border/30 max-h-[85vh] overflow-y-auto"
-        initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-      >
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h3 className="font-medium text-foreground">录入今日数据</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">记录你的身体变化轨迹</p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full glass flex items-center justify-center">
-            <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
-          </button>
-        </div>
-        <form onSubmit={submit} className="space-y-3">
-          {fields.map(f => (
-            <div key={f.key} className="flex items-center gap-3">
-              <label className="text-sm text-foreground w-16 flex-shrink-0">{f.label}</label>
-              <div className="flex-1 flex items-center gap-2 px-4 py-3 rounded-2xl bg-muted/60 border border-border/30 focus-within:border-primary/40 transition-colors">
-                <input
-                  type={f.type}
-                  step={(f as any).step}
-                  placeholder={f.placeholder}
-                  value={(form as any)[f.key]}
-                  onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                  className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
-                />
-                <span className="text-xs text-muted-foreground">{f.unit}</span>
-              </div>
+    <ResponsiveBottomSheet
+      open={open}
+      onOpenChange={(o) => { if (!o) onClose() }}
+      title="录入今日数据"
+      description="记录你的身体变化轨迹"
+    >
+      <form onSubmit={submit} className="space-y-3 pb-2">
+        {fields.map(f => (
+          <div key={f.key} className="flex items-center gap-3">
+            <label className="text-sm text-foreground w-16 flex-shrink-0">{f.label}</label>
+            <div className="flex-1 flex items-center gap-2 px-4 py-3 rounded-2xl bg-muted/60 border border-border/30 focus-within:border-primary/40 transition-colors">
+              <input
+                type={f.type}
+                step={(f as { step?: string }).step}
+                placeholder={f.placeholder}
+                value={form[f.key as keyof typeof form]}
+                onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
+              />
+              <span className="text-xs text-muted-foreground">{f.unit}</span>
             </div>
-          ))}
-          {error && <p className="text-xs text-destructive">{error}</p>}
-          <motion.button
-            type="submit" disabled={saving}
-            className="w-full py-3 rounded-2xl bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium text-sm mt-2"
-            whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
-          >
-            {saving ? '保存中...' : '保存记录'}
-          </motion.button>
-        </form>
-      </motion.div>
-    </>
+          </div>
+        ))}
+        {error && <p className="text-xs text-destructive">{error}</p>}
+        <motion.button
+          type="submit"
+          disabled={saving}
+          className="touch-target w-full min-h-12 py-3 rounded-2xl bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium text-sm mt-2"
+          whileTap={TAP_SPRING}
+        >
+          {saving ? '保存中...' : '保存记录'}
+        </motion.button>
+      </form>
+    </ResponsiveBottomSheet>
   )
 }
 
@@ -193,7 +185,7 @@ function AchievementBadge({ ach, unlocked, index }: { ach: typeof ACHIEVEMENTS[0
 }
 
 // ── 消息通知设置 ──────────────────────────────────────────────
-function NotifModal({ onClose }: { onClose: () => void }) {
+function NotifModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const KEYS = ['workout_reminder', 'community_interaction', 'checkin_reminder', 'dm_notification']
   const LABELS = ['运动提醒', '社区互动（点赞/评论）', '每日打卡提醒', '私信通知']
   const [toggles, setToggles] = useState<Record<string, boolean>>(() => {
@@ -205,79 +197,71 @@ function NotifModal({ onClose }: { onClose: () => void }) {
     localStorage.setItem('notif_settings', JSON.stringify(next))
   }
   return (
-    <>
-      <motion.div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-      <motion.div className="fixed inset-x-4 bottom-4 z-[61] bg-card/95 backdrop-blur-xl rounded-3xl p-5 shadow-2xl border border-border/30"
-        initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}>
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-medium text-foreground">消息通知</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-full glass flex items-center justify-center">
-            <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
-          </button>
-        </div>
-        <div className="space-y-4">
-          {KEYS.map((k, i) => (
-            <div key={k} className="flex items-center justify-between">
-              <span className="text-sm text-foreground">{LABELS[i]}</span>
-              <motion.button
-                className={`w-12 h-6 rounded-full relative transition-colors ${toggles[k] ? 'bg-gradient-to-r from-primary to-secondary' : 'bg-muted'}`}
-                onClick={() => toggle(k)} whileTap={{ scale: 0.95 }}
-              >
-                <motion.div className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm"
-                  animate={{ left: toggles[k] ? '1.75rem' : '0.25rem' }}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                />
-              </motion.button>
-            </div>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground mt-5 text-center">设置仅保存在本设备</p>
-      </motion.div>
-    </>
+    <ResponsiveBottomSheet
+      open={open}
+      onOpenChange={(o) => { if (!o) onClose() }}
+      title="消息通知"
+    >
+      <div className="space-y-4 pb-2">
+        {KEYS.map((k, i) => (
+          <div key={k} className="flex items-center justify-between gap-4 min-h-12">
+            <span className="text-sm text-foreground">{LABELS[i]}</span>
+            <motion.button
+              type="button"
+              className={`touch-target w-14 h-8 rounded-full relative transition-colors shrink-0 ${toggles[k] ? 'bg-gradient-to-r from-primary to-secondary' : 'bg-muted'}`}
+              onClick={() => toggle(k)}
+              whileTap={TAP_SPRING}
+            >
+              <motion.div
+                className="absolute top-1 w-6 h-6 rounded-full bg-white shadow-sm"
+                animate={{ left: toggles[k] ? '1.75rem' : '0.25rem' }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              />
+            </motion.button>
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground mt-4 text-center pb-1">设置仅保存在本设备</p>
+    </ResponsiveBottomSheet>
   )
 }
 
 // ── 隐私设置 ──────────────────────────────────────────────────
-function PrivacyModal({ onClose }: { onClose: () => void }) {
+function PrivacyModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [pub, setPub] = useState(() => localStorage.getItem('privacy_public') !== 'false')
   const [allowDM, setAllowDM] = useState(() => localStorage.getItem('privacy_dm') !== 'false')
   return (
-    <>
-      <motion.div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-      <motion.div className="fixed inset-x-4 bottom-4 z-[61] bg-card/95 backdrop-blur-xl rounded-3xl p-5 shadow-2xl border border-border/30"
-        initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}>
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-medium text-foreground">隐私设置</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-full glass flex items-center justify-center">
-            <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
-          </button>
-        </div>
-        <div className="space-y-4">
-          {[
-            { label: '公开我的档案', desc: '其他用户可查看你的动态', val: pub, set: (v: boolean) => { setPub(v); localStorage.setItem('privacy_public', String(v)) } },
-            { label: '允许私信', desc: '其他用户可向你发送私信', val: allowDM, set: (v: boolean) => { setAllowDM(v); localStorage.setItem('privacy_dm', String(v)) } },
-          ].map(item => (
-            <div key={item.label}>
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-sm text-foreground">{item.label}</span>
-                <motion.button
-                  className={`w-12 h-6 rounded-full relative transition-colors ${item.val ? 'bg-gradient-to-r from-primary to-secondary' : 'bg-muted'}`}
-                  onClick={() => item.set(!item.val)} whileTap={{ scale: 0.95 }}
-                >
-                  <motion.div className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm"
-                    animate={{ left: item.val ? '1.75rem' : '0.25rem' }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                </motion.button>
-              </div>
-              <p className="text-xs text-muted-foreground">{item.desc}</p>
+    <ResponsiveBottomSheet
+      open={open}
+      onOpenChange={(o) => { if (!o) onClose() }}
+      title="隐私设置"
+    >
+      <div className="space-y-5 pb-2">
+        {[
+          { label: '公开我的档案', desc: '其他用户可查看你的动态', val: pub, set: (v: boolean) => { setPub(v); localStorage.setItem('privacy_public', String(v)) } },
+          { label: '允许私信', desc: '其他用户可向你发送私信', val: allowDM, set: (v: boolean) => { setAllowDM(v); localStorage.setItem('privacy_dm', String(v)) } },
+        ].map(item => (
+          <div key={item.label}>
+            <div className="flex items-center justify-between mb-1 gap-4 min-h-12">
+              <span className="text-sm text-foreground">{item.label}</span>
+              <motion.button
+                type="button"
+                className={`touch-target w-14 h-8 rounded-full relative transition-colors shrink-0 ${item.val ? 'bg-gradient-to-r from-primary to-secondary' : 'bg-muted'}`}
+                onClick={() => item.set(!item.val)}
+                whileTap={TAP_SPRING}
+              >
+                <motion.div
+                  className="absolute top-1 w-6 h-6 rounded-full bg-white shadow-sm"
+                  animate={{ left: item.val ? '1.75rem' : '0.25rem' }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              </motion.button>
             </div>
-          ))}
-        </div>
-      </motion.div>
-    </>
+            <p className="text-xs text-muted-foreground">{item.desc}</p>
+          </div>
+        ))}
+      </div>
+    </ResponsiveBottomSheet>
   )
 }
 
@@ -289,42 +273,52 @@ const FAQ = [
   { q: '如何发送私信？', a: '在繁花社区的帖子下方点击信封图标，即可向发帖者发送私信。' },
   { q: '成就徽章如何解锁？', a: '满足相应条件后系统会自动解锁，点击灰色徽章可查看解锁条件。' },
 ]
-function HelpModal({ onClose }: { onClose: () => void }) {
-  const [open, setOpen] = useState<number | null>(null)
+function HelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [expanded, setExpanded] = useState<number | null>(null)
   return (
-    <>
-      <motion.div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-      <motion.div className="fixed inset-x-4 bottom-4 z-[61] bg-card/95 backdrop-blur-xl rounded-3xl p-5 shadow-2xl border border-border/30 max-h-[80vh] overflow-y-auto"
-        initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}>
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-medium text-foreground">帮助中心</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-full glass flex items-center justify-center">
-            <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
-          </button>
-        </div>
-        <div className="space-y-2">
-          {FAQ.map((item, i) => (
-            <motion.div key={i} className="rounded-2xl overflow-hidden border border-border/30">
-              <button className="w-full flex items-center justify-between p-4 text-left" onClick={() => setOpen(open === i ? null : i)}>
-                <span className="text-sm font-medium text-foreground">{item.q}</span>
-                <motion.svg className="w-4 h-4 text-muted-foreground flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  animate={{ rotate: open === i ? 90 : 0 }} transition={{ duration: 0.2 }}>
-                  <path d="M9 18l6-6-6-6" />
-                </motion.svg>
-              </button>
-              <AnimatePresence>
-                {open === i && (
-                  <motion.div className="px-4 pb-4" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
-                    <p className="text-sm text-muted-foreground">{item.a}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
-    </>
+    <ResponsiveBottomSheet
+      open={open}
+      onOpenChange={(o) => { if (!o) onClose() }}
+      title="帮助中心"
+      contentClassName="pb-4"
+    >
+      <div className="space-y-2">
+        {FAQ.map((item, i) => (
+          <motion.div key={i} className="rounded-2xl overflow-hidden border border-border/30">
+            <button
+              type="button"
+              className="touch-target w-full flex items-center justify-between p-4 text-left min-h-12"
+              onClick={() => setExpanded(expanded === i ? null : i)}
+            >
+              <span className="text-sm font-medium text-foreground pr-3">{item.q}</span>
+              <motion.svg
+                className="w-4 h-4 text-muted-foreground flex-shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                animate={{ rotate: expanded === i ? 90 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <path d="M9 18l6-6-6-6" />
+              </motion.svg>
+            </button>
+            <AnimatePresence>
+              {expanded === i && (
+                <motion.div
+                  className="px-4 pb-4"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                >
+                  <p className="text-sm text-muted-foreground">{item.a}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        ))}
+      </div>
+    </ResponsiveBottomSheet>
   )
 }
 
@@ -598,36 +592,45 @@ function FriendsModal({ onClose }: { onClose: () => void }) {
 }
 
 // ── 关于她健康 ────────────────────────────────────────────────
-function AboutModal({ onClose }: { onClose: () => void }) {
+function AboutModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <>
-      <motion.div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-      <motion.div className="fixed inset-x-4 bottom-4 z-[61] bg-card/95 backdrop-blur-xl rounded-3xl p-5 shadow-2xl border border-border/30"
-        initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}>
-        <div className="text-center mb-5">
-          <span className="font-brand text-4xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">她健康</span>
-          <p className="text-xs text-muted-foreground mt-1">Shealth · v1.0.0</p>
-        </div>
-        <p className="text-sm text-muted-foreground text-center leading-relaxed mb-6">
-          为每一位女性打造的 AI 闺蜜健身教练<br />
-          让蜕变成为一种温柔的习惯
-        </p>
-        <div className="glass rounded-2xl p-4 space-y-3">
-          {[
-            { label: '版本', value: '1.0.0' },
-            { label: '开发团队', value: 'Shealth Studio' },
-            { label: '技术栈', value: 'Next.js · Supabase · Framer Motion' },
-          ].map(item => (
-            <div key={item.label} className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{item.label}</span>
-              <span className="text-foreground">{item.value}</span>
-            </div>
-          ))}
-        </div>
-        <button onClick={onClose} className="w-full mt-4 py-3 rounded-2xl bg-muted/60 text-sm text-muted-foreground">关闭</button>
-      </motion.div>
-    </>
+    <ResponsiveBottomSheet
+      open={open}
+      onOpenChange={(o) => { if (!o) onClose() }}
+      title={
+        <span className="font-brand text-2xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          她健康
+        </span>
+      }
+      description="Shealth · v1.0.0"
+      footer={
+        <button
+          type="button"
+          onClick={onClose}
+          className="touch-target w-full min-h-12 py-3 rounded-2xl bg-muted/60 text-sm text-muted-foreground"
+        >
+          关闭
+        </button>
+      }
+    >
+      <p className="text-sm text-muted-foreground text-center leading-relaxed mb-6">
+        为每一位女性打造的 AI 闺蜜健身教练
+        <br />
+        让蜕变成为一种温柔的习惯
+      </p>
+      <div className="glass rounded-2xl p-4 space-y-3 mb-2">
+        {[
+          { label: '版本', value: '1.0.0' },
+          { label: '开发团队', value: 'Shealth Studio' },
+          { label: '技术栈', value: 'Next.js · Supabase · Framer Motion' },
+        ].map(item => (
+          <div key={item.label} className="flex justify-between text-sm">
+            <span className="text-muted-foreground">{item.label}</span>
+            <span className="text-foreground">{item.value}</span>
+          </div>
+        ))}
+      </div>
+    </ResponsiveBottomSheet>
   )
 }
 
@@ -712,43 +715,62 @@ export default function ProfilePage() {
       <div className="relative z-10 pt-24 md:pt-16 mobile-shell">
         <div className="max-w-2xl mx-auto">
 
-          {/* 个人头部 — 紧凑+清爽 */}
+          {/* 个人头部 */}
           <motion.div className="mb-5" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-primary/15 via-secondary/8 to-lilac/15 border border-white/30 premium-card">
-              <div className="p-4">
-                <div className="flex items-center gap-3.5">
-                  <motion.div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/60 to-secondary/60 flex items-center justify-center flex-shrink-0 shadow-lg" whileTap={{ scale: 0.95 }}>
-                    <svg className="w-8 h-8 text-white/90" viewBox="0 0 24 24" fill="currentColor">
-                      <circle cx="12" cy="8" r="4" /><path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" />
-                    </svg>
-                  </motion.div>
+            <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-primary/20 via-secondary/10 to-lilac/20 border border-white/40 premium-card">
+              {/* 背景装饰 */}
+              <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-gradient-to-br from-primary/10 to-secondary/10 -translate-y-1/2 translate-x-1/3 blur-2xl pointer-events-none" />
+              <div className="p-4 pb-3.5">
+                {/* 头像 + 名字 + 等级 */}
+                <div className="flex items-center gap-3.5 mb-4">
+                  <div className="relative flex-shrink-0">
+                    <motion.div
+                      className="w-[3.75rem] h-[3.75rem] rounded-2xl bg-gradient-to-br from-primary/70 to-secondary/60 flex items-center justify-center shadow-lg"
+                      whileTap={{ scale: 0.93 }}
+                    >
+                      <svg className="w-7 h-7 text-white/90" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="8" r="4" /><path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" />
+                      </svg>
+                    </motion.div>
+                    {/* 等级徽章 */}
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-br from-primary to-secondary border-2 border-white flex items-center justify-center">
+                      <span className="text-[9px] font-bold text-white leading-none">{Math.floor(totalPoints / 100) + 1}</span>
+                    </div>
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-[18px] font-semibold text-foreground truncate">{getDisplayName(profile, '花间仙子')}</h2>
-                    <p className="text-[11px] text-muted-foreground mb-1.5">Lv.{Math.floor(totalPoints / 100) + 1} · 还差 {100 - (totalPoints % 100)} 分</p>
-                    <div className="h-1.5 bg-white/40 rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full bg-gradient-to-r from-primary to-secondary rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.min((totalPoints % 100), 100)}%` }}
-                        transition={{ duration: 1, delay: 0.3 }}
-                      />
+                    <h2 className="text-[17px] font-semibold text-foreground truncate leading-tight">{getDisplayName(profile, '花间仙子')}</h2>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 h-1.5 bg-white/40 rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full bg-gradient-to-r from-primary to-secondary rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min((totalPoints % 100), 100)}%` }}
+                          transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">还差 {100 - (totalPoints % 100)} 分升级</span>
                     </div>
                   </div>
                 </div>
 
-                {/* 统计 — 横向数字 */}
-              <div className="grid grid-cols-3 gap-2 mt-4">
+                {/* 统计 */}
+                <div className="grid grid-cols-3 gap-2 mb-3.5">
                   {[
-                    { label: "连续打卡", value: streak.toString(), unit: "天" },
-                    { label: "运动时长", value: totalMinutes.toString(), unit: "分" },
-                    { label: "运动分", value: totalPoints.toString(), unit: "" },
-                  ].map(stat => (
-                    <div key={stat.label} className="bg-white/42 backdrop-blur-sm rounded-xl py-2.5 text-center border border-white/40">
-                      <p className="text-[18px] font-semibold text-foreground leading-tight">
-                        {stat.value}<span className="text-[11px] font-normal text-muted-foreground ml-0.5">{stat.unit}</span>
+                    { label: "连续打卡", value: streak, unit: "天", emoji: "🔥" },
+                    { label: "运动时长", value: totalMinutes, unit: "分", emoji: "⏱" },
+                    { label: "运动分", value: totalPoints, unit: "", emoji: "⭐" },
+                  ].map((stat) => (
+                    <motion.div
+                      key={stat.label}
+                      className="bg-white/50 backdrop-blur-sm rounded-2xl py-2.5 text-center border border-white/50"
+                      whileTap={{ scale: 0.96 }}
+                    >
+                      <p className="text-lg mb-0.5">{stat.emoji}</p>
+                      <p className="text-[17px] font-bold text-foreground leading-tight tabular-nums">
+                        {stat.value}<span className="text-[10px] font-normal text-muted-foreground">{stat.unit}</span>
                       </p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{stat.label}</p>
-                    </div>
+                      <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+                    </motion.div>
                   ))}
                 </div>
 
@@ -756,15 +778,26 @@ export default function ProfilePage() {
                 <motion.button
                   onClick={handleCheckin}
                   disabled={todayCheckedIn || checkingIn}
-                  className={`w-full py-2.5 mt-3 rounded-xl font-medium text-[13px] transition-all ${
+                  className={`w-full min-h-12 rounded-2xl font-medium text-[14px] transition-all relative overflow-hidden ${
                     todayCheckedIn || checkInSuccess
-                      ? 'bg-accent/15 text-accent'
-                      : 'bg-gradient-to-r from-primary to-secondary text-primary-foreground'
+                      ? "bg-accent/20 text-accent border border-accent/30"
+                      : "bg-gradient-to-r from-primary to-secondary text-primary-foreground"
                   }`}
-                  whileTap={!todayCheckedIn ? { scale: 0.98 } : {}}
-                  style={!todayCheckedIn ? { boxShadow: "0 4px 16px rgba(255,182,193,0.3)" } : {}}
+                  whileTap={!todayCheckedIn ? TAP_SPRING : {}}
+                  style={!todayCheckedIn ? { boxShadow: "0 6px 20px rgba(255,182,193,0.35)" } : {}}
+                  aria-label={todayCheckedIn ? "今日已打卡" : "今日打卡"}
                 >
-                  {checkInSuccess ? '✓ 打卡成功！+10 运动分' : todayCheckedIn ? '✓ 今日已打卡' : checkingIn ? '打卡中...' : '今日打卡'}
+                  {!todayCheckedIn && (
+                    <motion.span
+                      className="absolute inset-0 bg-white/20 rounded-2xl"
+                      initial={{ scale: 0, opacity: 0.6 }}
+                      animate={{ scale: 2.5, opacity: 0 }}
+                      transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                    />
+                  )}
+                  <span className="relative">
+                    {checkInSuccess ? "✓ 打卡成功！+10 运动分 🎉" : todayCheckedIn ? "✓ 今日已打卡" : checkingIn ? "打卡中..." : "🌸 今日打卡"}
+                  </span>
                 </motion.button>
               </div>
             </div>
@@ -773,7 +806,7 @@ export default function ProfilePage() {
           {/* 维度数据 */}
           <motion.div className="mb-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
             <div className="flex items-center justify-between mb-2.5 px-1">
-              <h3 className="text-[15px] font-semibold text-foreground">身体维度</h3>
+              <h3 className="fluid-title font-semibold text-foreground">身体维度</h3>
               <motion.button
                 className="text-xs text-primary flex items-center gap-1"
                 onClick={() => setShowDimModal(true)}
@@ -909,8 +942,8 @@ export default function ProfilePage() {
                 <motion.button
                   key={item.label}
                   onClick={item.onClick}
-                  className={`w-full flex items-center justify-between px-4 py-3 active:bg-muted/40 transition-colors ${i !== arr.length - 1 ? 'border-b border-border/30' : ''}`}
-                  whileTap={{ scale: 0.99 }}
+                  className={`w-full flex items-center justify-between px-4 py-3.5 min-h-12 active:bg-muted/40 transition-colors ${i !== arr.length - 1 ? 'border-b border-border/30' : ''}`}
+                  whileTap={TAP_SPRING}
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
@@ -926,22 +959,20 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* 弹窗层 */}
+      <DimensionModal
+        open={showDimModal}
+        onClose={() => setShowDimModal(false)}
+        onSaved={() => {
+          supabase.from('dimensions').select('*').eq('user_id', user!.id).order('recorded_at', { ascending: false }).limit(7)
+            .then(({ data }) => { if (data) setDimensions(data) })
+          refreshStats()
+        }}
+      />
+      <NotifModal open={showNotif} onClose={() => setShowNotif(false)} />
+      <PrivacyModal open={showPrivacy} onClose={() => setShowPrivacy(false)} />
+      <HelpModal open={showHelp} onClose={() => setShowHelp(false)} />
+      <AboutModal open={showAbout} onClose={() => setShowAbout(false)} />
       <AnimatePresence>
-        {showDimModal && (
-          <DimensionModal
-            onClose={() => setShowDimModal(false)}
-            onSaved={() => {
-              supabase.from('dimensions').select('*').eq('user_id', user!.id).order('recorded_at', { ascending: false }).limit(7)
-                .then(({ data }) => { if (data) setDimensions(data) })
-              refreshStats()
-            }}
-          />
-        )}
-        {showNotif && <NotifModal onClose={() => setShowNotif(false)} />}
-        {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
-        {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
-        {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
         {showFriends && <FriendsModal onClose={() => { setShowFriends(false); setPendingCount(0) }} />}
       </AnimatePresence>
 

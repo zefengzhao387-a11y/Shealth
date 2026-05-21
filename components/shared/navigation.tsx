@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { getDisplayName } from "@/lib/display-name"
+import { TAP_SPRING } from "@/lib/motion-presets"
 
 export function Navigation() {
   const pathname = usePathname()
@@ -168,7 +169,7 @@ export function Navigation() {
           <Link href="/">
             <motion.div
               className="px-2 py-1 rounded-xl flex items-center gap-1.5"
-              whileTap={{ scale: 0.98 }}
+              whileTap={TAP_SPRING}
             >
               <span className="font-brand text-base bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 她健康
@@ -185,7 +186,7 @@ export function Navigation() {
                 className="flex min-h-11 items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-white/35 transition-colors"
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 aria-expanded={showUserMenu}
-                whileTap={{ scale: 0.98 }}
+                whileTap={TAP_SPRING}
               >
                 <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
                   <svg className="w-3 h-3 text-primary-foreground" viewBox="0 0 24 24" fill="currentColor">
@@ -256,10 +257,10 @@ export function Navigation() {
               <Link
                 key={item.label}
                 href={item.href}
-                className={`min-h-10 rounded-xl text-xs transition-colors inline-flex items-center justify-center ${
+                className={`min-h-12 rounded-xl text-xs transition-colors inline-flex items-center justify-center touch-target ${
                   pathname === item.href
                     ? "text-primary font-medium bg-primary/10"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/40"
+                    : "text-muted-foreground active:bg-white/45 active:text-foreground"
                 }`}
               >
                 {item.label}

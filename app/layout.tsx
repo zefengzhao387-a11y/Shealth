@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Providers } from '@/components/shared/providers'
@@ -30,14 +30,21 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  colorScheme: 'light',
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
   return (
-    <html lang="zh-CN" className="bg-background">
-      <body className="font-sans antialiased">
+    <html lang="zh-CN" className="bg-background" style={{ colorScheme: 'light' }}>
+      <body className="font-sans antialiased min-h-screen bg-background text-foreground">
         <Providers>
           {children}
         </Providers>

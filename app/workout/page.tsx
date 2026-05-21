@@ -6,6 +6,7 @@ import { Navigation } from "@/components/shared/navigation"
 import { Petal, BackgroundEffects } from "@/components/shared/effects"
 import { useAuth } from "@/contexts/auth-context"
 import { usePoints } from "@/contexts/points-context"
+import { TAP_SPRING } from "@/lib/motion-presets"
 
 type CourseCategory = "all" | "pilates" | "yoga" | "period" | "meditation"
 
@@ -92,11 +93,11 @@ const courses: Course[] = [
 ]
 
 const categories = [
-  { id: "all", label: "全部" },
-  { id: "pilates", label: "普拉提" },
-  { id: "yoga", label: "瑜伽" },
-  { id: "period", label: "经期舒缓" },
-  { id: "meditation", label: "冥想助眠" },
+  { id: "all", label: "全部", emoji: "✨" },
+  { id: "pilates", label: "普拉提", emoji: "🌸" },
+  { id: "yoga", label: "瑜伽", emoji: "🧘" },
+  { id: "period", label: "经期舒缓", emoji: "🌙" },
+  { id: "meditation", label: "冥想助眠", emoji: "🌊" },
 ]
 
 // 格式化秒数
@@ -109,58 +110,88 @@ function fmtTime(s: number) {
 function CategoryTabs({ active, onChange }: { active: CourseCategory; onChange: (c: CourseCategory) => void }) {
   return (
     <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
-      {categories.map(cat => (
-        <motion.button
-          key={cat.id}
-          className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all snap-start ${
-            active === cat.id
-              ? "bg-gradient-to-r from-primary to-secondary text-primary-foreground"
-              : "glass text-muted-foreground hover:text-foreground"
-          }`}
-          onClick={() => onChange(cat.id as CourseCategory)}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          {cat.label}
-        </motion.button>
-      ))}
+      {categories.map((cat) => {
+        const isActive = active === cat.id
+        return (
+          <motion.button
+            key={cat.id}
+            className={`min-h-12 px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all snap-start touch-target ${
+              isActive
+                ? "bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-sm"
+                : "glass text-muted-foreground active:bg-white/50 active:text-foreground"
+            }`}
+            onClick={() => onChange(cat.id as CourseCategory)}
+            whileTap={TAP_SPRING}
+            aria-pressed={isActive}
+          >
+            {cat.label}
+          </motion.button>
+        )
+      })}
     </div>
   )
 }
 
 function CourseCard({ course, index, onClick }: { course: Course; index: number; onClick: () => void }) {
-  const [hovered, setIsHovered] = useState(false)
   return (
     <motion.div
-      className={`relative rounded-3xl overflow-hidden cursor-pointer bg-gradient-to-br ${course.gradient} premium-card`}
+      className={`group relative rounded-3xl overflow-hidden cursor-pointer bg-gradient-to-br ${course.gradient} premium-card card-lift`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08 }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      whileHover={{ scale: 1.02, y: -4 }}
+      transition={{ delay: index * 0.07 }}
+      whileTap={TAP_SPRING}
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      aria-label={`开始课程：${course.title}`}
+      onKeyDown={(e) => e.key === "Enter" && onClick()}
     >
+      {/* 封面 */}
       <div className={`aspect-[4/3] bg-gradient-to-br ${course.thumbnail} relative overflow-hidden`}>
-        <motion.div className="absolute -bottom-10 -right-10 w-32 h-32 rounded-full bg-white/10" animate={hovered ? { scale: 1.3 } : { scale: 1 }} />
-        <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-white/30 backdrop-blur-sm text-xs text-foreground/80">
-          {course.difficulty}
+        {/* 装饰圆 */}
+        <motion.div
+          className="absolute -bottom-8 -right-8 w-28 h-28 rounded-full bg-white/12"
+          animate={{ scale: [1, 1.15, 1] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* 难度 + 积分 */}
+        <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
+          <span className="px-2 py-0.5 rounded-full bg-black/20 backdrop-blur-sm text-[11px] text-white/90 font-medium">
+            {course.difficulty}
+          </span>
+          <span className="px-2 py-0.5 rounded-full bg-white/30 backdrop-blur-sm text-[11px] text-foreground font-semibold">
+            +{course.points}分
+          </span>
         </div>
-        <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-white/30 backdrop-blur-sm text-xs font-medium text-foreground">
-          +{course.points} 分
+        {/* 时长 */}
+        <div className="absolute bottom-3 left-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/20 backdrop-blur-sm">
+          <svg className="w-3 h-3 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+          </svg>
+          <span className="text-[11px] text-white/90">{course.durationMinutes} 分钟</span>
         </div>
-        <motion.div className="absolute inset-0 flex items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: hovered ? 1 : 0 }}>
-          <div className="w-14 h-14 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center">
-            <svg className="w-6 h-6 text-primary ml-1" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
-          </div>
-        </motion.div>
+        {/* 播放按钮 — 移动端始终可见 */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <motion.div
+            className="w-12 h-12 rounded-full bg-white/75 backdrop-blur-sm flex items-center justify-center shadow-md"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.92 }}
+          >
+            <svg className="w-5 h-5 text-primary ml-0.5" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5,3 19,12 5,21" />
+            </svg>
+          </motion.div>
+        </div>
       </div>
-      <div className="p-4 glass">
-        <h3 className="font-medium text-foreground mb-0.5">{course.title}</h3>
-        <p className="text-xs text-muted-foreground mb-1">{course.subtitle}</p>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{course.instructor}</span>
-          <span>{course.durationMinutes} 分钟</span>
+
+      {/* 信息 */}
+      <div className="p-3.5">
+        <h3 className="font-medium text-[14px] text-foreground mb-0.5 truncate">{course.title}</h3>
+        <p className="text-[12px] text-muted-foreground truncate">{course.subtitle}</p>
+        <div className="divider-fade my-2" />
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] text-muted-foreground">{course.instructor}</span>
+            <span className="chip bg-primary/10 text-primary">{categories.find(c => c.id === course.category)?.label ?? ""}</span>
         </div>
       </div>
     </motion.div>
@@ -233,7 +264,7 @@ function WorkoutPlayer({ course, onClose }: { course: Course; onClose: () => voi
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 bg-background/98 backdrop-blur-sm"
+      className="fixed inset-0 z-[60] bg-background/98 backdrop-blur-sm"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -470,28 +501,82 @@ function WorkoutPlayer({ course, onClose }: { course: Course; onClose: () => voi
 function TodayRecommend({ onStart }: { onStart: (c: Course) => void }) {
   const recommend = courses[2]
   return (
-    <motion.div className="mb-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-      <h2 className="text-base font-medium text-foreground mb-3">今日推荐</h2>
+    <motion.div className="mb-6" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+      <div className="flex items-center justify-between mb-2.5 px-0.5">
+        <h2 className="text-[15px] font-semibold text-foreground">今日推荐</h2>
+        <span className="chip bg-primary/10 text-primary">AI 智能推荐 ✨</span>
+      </div>
       <motion.div
-        className={`relative rounded-3xl overflow-hidden bg-gradient-to-br ${recommend.gradient} p-4 md:p-5 cursor-pointer premium-card`}
-        whileHover={{ scale: 1.01 }} onClick={() => onStart(recommend)}
+        className={`relative rounded-3xl overflow-hidden cursor-pointer bg-gradient-to-br ${recommend.thumbnail}`}
+        style={{ boxShadow: "0 10px 36px rgba(255,182,193,0.28), 0 2px 0 rgba(255,255,255,0.6) inset" }}
+        whileHover={{ scale: 1.01 }}
+        whileTap={TAP_SPRING}
+        onClick={() => onStart(recommend)}
+        role="button"
+        tabIndex={0}
+        aria-label={`今日推荐：${recommend.title}`}
+        onKeyDown={(e) => e.key === "Enter" && onStart(recommend)}
       >
-        <div className="flex items-center gap-3 md:gap-4">
-          <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br ${recommend.thumbnail} flex items-center justify-center flex-shrink-0`}>
-            <motion.div className="w-12 h-12 rounded-full bg-white/50 flex items-center justify-center" animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
-              <svg className="w-5 h-5 text-primary ml-0.5" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>
-            </motion.div>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-primary mb-1 font-medium">AI 智能推荐</p>
-            <h3 className="font-medium text-foreground mb-1 truncate">{recommend.title}</h3>
-            <p className="text-xs text-muted-foreground line-clamp-1">{recommend.durationMinutes} 分钟 · {recommend.difficulty} · {recommend.instructor}</p>
-            <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-xs text-primary">
-              +{recommend.points} 运动分
+        {/* 装饰背景圆 */}
+        <motion.div
+          className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/15"
+          animate={{ scale: [1, 1.12, 1], rotate: [0, 15, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-white/10"
+          animate={{ scale: [1, 1.08, 1] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        />
+
+        <div className="relative p-4 md:p-5">
+          <div className="flex items-center gap-4">
+            {/* 封面缩略 */}
+            <div className="relative flex-shrink-0">
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white/30 backdrop-blur-sm flex items-center justify-center">
+                <motion.div
+                  className="w-14 h-14 rounded-full bg-white/60 flex items-center justify-center shadow-md"
+                  animate={{ scale: [1, 1.07, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <svg className="w-6 h-6 text-primary ml-0.5" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5,3 19,12 5,21" />
+                  </svg>
+                </motion.div>
+              </div>
+              {/* 脉冲圆 */}
+              <motion.div
+                className="absolute inset-0 rounded-2xl bg-white/20"
+                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                transition={{ duration: 2.5, repeat: Infinity }}
+              />
+            </div>
+
+            {/* 信息 */}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-[16px] text-foreground/95 mb-1 truncate">{recommend.title}</h3>
+              <p className="text-xs text-foreground/65 mb-2.5">{recommend.subtitle} · {recommend.instructor}</p>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="chip bg-white/40 text-foreground/80">⏱ {recommend.durationMinutes} 分钟</span>
+                <span className="chip bg-white/40 text-foreground/80">🎯 {recommend.difficulty}</span>
+                <span className="chip bg-primary/20 text-primary font-semibold">+{recommend.points} 运动分</span>
+              </div>
             </div>
           </div>
+
+          {/* 底部进度条装饰 */}
+          <div className="mt-3.5 flex items-center gap-2">
+            <div className="flex-1 h-1 rounded-full bg-white/30 overflow-hidden">
+              <motion.div
+                className="h-full bg-white/70 rounded-full"
+                initial={{ width: "0%" }}
+                animate={{ width: "65%" }}
+                transition={{ duration: 1.5, delay: 0.5, ease: "easeOut" }}
+              />
+            </div>
+            <span className="text-[10px] text-foreground/60 whitespace-nowrap">适合你的水平</span>
+          </div>
         </div>
-        <motion.div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-white/10" animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 4, repeat: Infinity }} />
       </motion.div>
     </motion.div>
   )
@@ -517,7 +602,7 @@ export default function WorkoutPage() {
       <div className="relative z-10 pt-24 md:pt-20 mobile-shell">
         <div className="max-w-2xl mx-auto">
           <motion.div className="mb-5 md:mb-6" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="text-[26px] md:text-2xl font-medium text-foreground tracking-tight">悦动专区</h1>
+            <h1 className="fluid-title font-medium text-foreground tracking-tight">悦动专区</h1>
             <p className="text-sm text-muted-foreground mt-1">选择一个课程，开始今天的练习</p>
           </motion.div>
 

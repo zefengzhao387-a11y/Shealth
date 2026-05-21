@@ -197,10 +197,15 @@ export async function POST(request: Request) {
     }
 
     if (!result.ok) {
-      return NextResponse.json(
-        { error: result.error, detail: "detail" in result ? result.detail : undefined },
-        { status: result.status },
-      )
+      // 兜底：API 不可用时返回温柔的本地回复，不暴露错误给用户
+      const fallbackReplies = [
+        "亲爱的，我现在有点忙不过来，稍等一下再来陪你聊吧 🌸 你可以先去做个深呼吸，感受一下当下的自己。",
+        "信号有点小问题呢 🌙 不过你现在的状态怎么样？有时候简单地活动活动身体，心情也会跟着好起来哦。",
+        "我的思路有点跑开了 ✨ 趁这个间隙，你可以试试站起来伸个懒腰，对肩颈特别好。",
+      ]
+      const fallback = fallbackReplies[Math.floor(Math.random() * fallbackReplies.length)]
+      console.error("[ai-chat] API error:", result.error, "detail" in result ? result.detail : "")
+      return NextResponse.json({ reply: fallback })
     }
 
     return NextResponse.json({ reply: result.reply })
