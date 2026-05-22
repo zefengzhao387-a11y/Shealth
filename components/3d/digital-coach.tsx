@@ -365,33 +365,14 @@ function stabilizeVrm(vrm: {
   }
 }
 
-/** 行走时只更新骨骼/约束/弹簧，让头发衣服跟随转向，不做 idle 骨骼动画 */
-function updateVrmSecondaryMotion(
-  vrm: {
-    humanoid?: { update: () => void }
-    nodeConstraintManager?: { update: () => void }
-    springBoneManager?: { update: (d: number) => void }
-  },
-  delta: number,
-) {
-  vrm.humanoid?.update()
-  vrm.nodeConstraintManager?.update()
-  vrm.springBoneManager?.update(delta)
-}
-
-function easeOutQuart(t: number) {
-  return 1 - Math.pow(1 - t, 4)
-}
-
 function easeInOutCubic(t: number) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
 }
 
-/** 从屏幕左侧走上展示台（时间轴驱动，避免 delta 抖动） */
+/** 从屏幕左侧平移到展示台（只动整体位置，不转身体、不碰弹簧骨） */
 const ENTRANCE_WALK = {
   startX: -1.18,
   startZ: 0.04,
-  startRotY: 0.42,
   /** 预热帧：先静止渲染几帧，等 shader 编译完再开走 */
   warmupFrames: 5,
   durationSec: 2.35,
@@ -401,12 +382,11 @@ type EntrancePhase = 'warmup' | 'walk' | 'done'
 
 function applyEntranceWalk(group: THREE.Group, progress: number) {
   const move = easeInOutCubic(progress)
-  const turn = easeOutQuart(Math.min(1, progress * 1.02))
 
   group.position.x = THREE.MathUtils.lerp(ENTRANCE_WALK.startX, 0, move)
   group.position.z = THREE.MathUtils.lerp(ENTRANCE_WALK.startZ, 0, move)
   group.position.y = 0
-  group.rotation.y = THREE.MathUtils.lerp(ENTRANCE_WALK.startRotY, 0, turn)
+  group.rotation.y = 0
   group.scale.setScalar(1)
 }
 
@@ -503,8 +483,7 @@ function VRMScene({
   const vrmRef = useRef<{
     scene: THREE.Object3D
     update: (d: number) => void
-    springBoneManager?: { setInitState: () => void; update: (d: number) => void }
-    nodeConstraintManager?: { update: () => void }
+    springBoneManager?: { setInitState: () => void; reset: () => void }
     humanoid?: {
       getNormalizedBoneNode: (n: string) => THREE.Object3D | null
       setNormalizedPose: (pose: Record<string, { rotation?: [number, number, number, number] }>) => void
@@ -672,11 +651,9 @@ function VRMScene({
       if (entrancePhase === 'warmup') {
         applyEntranceWalk(entranceRef.current, 0)
         entranceWarmupFramesRef.current += 1
-        vrm.update(safeDelta)
         if (entranceWarmupFramesRef.current >= ENTRANCE_WALK.warmupFrames) {
           entrancePhaseRef.current = 'walk'
           entranceStartAtRef.current = performance.now()
-          vrm.springBoneManager?.setInitState()
         }
         return
       }
@@ -684,7 +661,6 @@ function VRMScene({
       const progress = getEntranceProgress(entranceStartAtRef.current)
       entranceProgressRef.current = progress
       applyEntranceWalk(entranceRef.current, progress)
-      updateVrmSecondaryMotion(vrm, safeDelta)
 
       if (progress > 0.08) loaderVisibleRef.current = false
       if (progress >= 1) {
