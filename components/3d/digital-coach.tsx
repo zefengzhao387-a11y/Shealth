@@ -365,6 +365,20 @@ function stabilizeVrm(vrm: {
   }
 }
 
+/** 行走时只更新骨骼/约束/弹簧，让头发衣服跟随转向，不做 idle 骨骼动画 */
+function updateVrmSecondaryMotion(
+  vrm: {
+    humanoid?: { update: () => void }
+    nodeConstraintManager?: { update: () => void }
+    springBoneManager?: { update: (d: number) => void }
+  },
+  delta: number,
+) {
+  vrm.humanoid?.update()
+  vrm.nodeConstraintManager?.update()
+  vrm.springBoneManager?.update(delta)
+}
+
 function easeOutQuart(t: number) {
   return 1 - Math.pow(1 - t, 4)
 }
@@ -489,7 +503,8 @@ function VRMScene({
   const vrmRef = useRef<{
     scene: THREE.Object3D
     update: (d: number) => void
-    springBoneManager?: { reset: () => void }
+    springBoneManager?: { setInitState: () => void; update: (d: number) => void }
+    nodeConstraintManager?: { update: () => void }
     humanoid?: {
       getNormalizedBoneNode: (n: string) => THREE.Object3D | null
       setNormalizedPose: (pose: Record<string, { rotation?: [number, number, number, number] }>) => void
@@ -661,6 +676,7 @@ function VRMScene({
         if (entranceWarmupFramesRef.current >= ENTRANCE_WALK.warmupFrames) {
           entrancePhaseRef.current = 'walk'
           entranceStartAtRef.current = performance.now()
+          vrm.springBoneManager?.setInitState()
         }
         return
       }
@@ -668,13 +684,13 @@ function VRMScene({
       const progress = getEntranceProgress(entranceStartAtRef.current)
       entranceProgressRef.current = progress
       applyEntranceWalk(entranceRef.current, progress)
+      updateVrmSecondaryMotion(vrm, safeDelta)
 
       if (progress > 0.08) loaderVisibleRef.current = false
       if (progress >= 1) {
         entrancePhaseRef.current = 'done'
         entranceProgressRef.current = 1
         resetEntrancePose(entranceRef.current)
-        vrm.springBoneManager?.reset()
       }
       return
     }
