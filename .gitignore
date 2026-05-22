@@ -8,8 +8,17 @@ __v0_jsx-dev-runtime.ts
 
 # Environment variables
 .env*.local
+.env.capacitor.local
 
 # Common ignores
 node_modules
 .next/
 .DS_Store
+
+# Capacitor native build artifacts
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+ios/App/build/
+ios/DerivedData/

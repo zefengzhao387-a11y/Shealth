@@ -1,16 +1,34 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
+import dynamic from "next/dynamic"
 import { useState, useEffect, useRef } from "react"
 import { BackgroundEffects } from "@/components/shared/effects"
+import { WardrobeButton } from "@/components/coach/wardrobe-button"
+import { CoachSpeechBubble } from "@/components/coach/coach-speech-bubble"
+import type { CoachSpeechCue } from "@/components/3d/digital-coach"
 import { TAP_SPRING } from "@/lib/motion-presets"
+import { DEFAULT_OUTFIT_ID, type CoachOutfitId } from "@/lib/coach-outfit"
+import { playCoachSpeech, stopCoachSpeech } from "@/lib/coach-tts"
 
-type MsgRole = "user" | "ai"
-interface ChatMsg {
+const DigitalCoach = dynamic(
+  () => import("@/components/3d/digital-coach").then((m) => m.DigitalCoach),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+      </div>
+    ),
+  },
+)
+
+interface UserChatMsg {
   id: number
-  role: MsgRole
   text: string
 }
+
+const MAX_VISIBLE_USER_MSGS = 2
 
 const QUICK_QUESTIONS = [
   "今天适合做什么运动？",
@@ -42,69 +60,28 @@ function ThinkingDots() {
   )
 }
 
-function CoachAvatar() {
-  return (
-    <>
-      <motion.div
-        className="w-36 h-36 sm:w-44 sm:h-44 md:w-64 md:h-64 rounded-full bg-gradient-to-br from-primary/20 via-secondary/15 to-accent/15"
-        animate={{ scale: [1, 1.06, 1], opacity: [0.6, 0.9, 0.6] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <div className="absolute inset-3 md:inset-4 rounded-full glass overflow-hidden">
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        />
-      </div>
-      <div className="absolute inset-7 md:inset-9 rounded-full bg-gradient-to-br from-primary/30 to-secondary/20 flex items-center justify-center">
-        <svg className="w-12 h-12 md:w-18 md:h-18 text-primary/60" viewBox="0 0 24 24" fill="currentColor">
-          <circle cx="12" cy="8" r="4" />
-          <path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" />
-        </svg>
-      </div>
-      {[...Array(5)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-1.5 h-1.5 rounded-full bg-primary/50"
-          style={{ left: `${18 + (i % 3) * 32}%`, top: `${12 + Math.floor(i / 3) * 58}%` }}
-          animate={{ scale: [0, 1, 0], opacity: [0, 0.9, 0] }}
-          transition={{ duration: 2.5, delay: i * 0.45, repeat: Infinity }}
-        />
-      ))}
-      {/* Online badge */}
-      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2.5 py-1 rounded-full glass-strong text-[10px] font-medium text-foreground/80 whitespace-nowrap shadow-sm">
-        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-        AI 教练在线
-      </div>
-    </>
-  )
-}
-
-function ChatBubble({ msg }: { msg: ChatMsg }) {
-  const isUser = msg.role === "user"
+function UserChatBubble({ msg }: { msg: UserChatMsg }) {
   return (
     <motion.div
-      className={`flex gap-2 ${isUser ? "flex-row-reverse" : "flex-row"}`}
-      initial={{ opacity: 0, y: 8, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ type: "spring", damping: 22, stiffness: 280 }}
+      layout
+      className="flex flex-row-reverse"
+      initial={{ opacity: 0, y: 14, scale: 0.94, filter: "blur(6px)" }}
+      animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+      exit={{
+        opacity: 0,
+        y: -24,
+        scale: 1.1,
+        filter: "blur(14px)",
+      }}
+      transition={{
+        layout: { type: "spring", damping: 28, stiffness: 320 },
+        opacity: { duration: 0.58, ease: [0.4, 0, 0.2, 1] },
+        y: { duration: 0.72, ease: [0.22, 1, 0.36, 1] },
+        scale: { duration: 0.62, ease: [0.22, 1, 0.36, 1] },
+        filter: { duration: 0.52, ease: "easeOut" },
+      }}
     >
-      {!isUser && (
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0 self-end shadow-sm">
-          <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="8" r="4" />
-            <path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" />
-          </svg>
-        </div>
-      )}
-      <div
-        className={`max-w-[78%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
-          isUser
-            ? "bg-gradient-to-br from-primary to-secondary text-primary-foreground rounded-br-sm"
-            : "bg-card/90 border border-border/30 backdrop-blur-sm text-foreground rounded-bl-sm"
-        }`}
-      >
+      <div className="max-w-[min(85%,520px)] px-4 py-3 rounded-2xl rounded-br-md text-sm leading-relaxed shadow-sm bg-gradient-to-br from-primary/95 to-secondary/95 text-primary-foreground backdrop-blur-sm">
         {msg.text}
       </div>
     </motion.div>
@@ -130,30 +107,19 @@ function AIInput({
   }
 
   return (
-    <motion.div
-      className="relative w-full"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.15 }}
-    >
+    <motion.div className="relative w-full" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
       <motion.div
         className={`absolute -inset-[2px] rounded-2xl bg-gradient-to-r from-primary via-secondary to-accent animate-gradient transition-opacity duration-300 ${focused ? "opacity-100" : "opacity-25"}`}
       />
-      <div className="relative bg-card/96 backdrop-blur-xl rounded-2xl px-3.5 py-2.5 shadow-sm">
-        <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
-            <svg className="w-3.5 h-3.5 text-primary-foreground" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="8" r="4" />
-              <path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" />
-            </svg>
-          </div>
+      <div className="relative bg-card/96 backdrop-blur-xl rounded-2xl px-4 py-3 shadow-sm">
+        <form onSubmit={handleSubmit} className="flex items-center gap-3">
           <input
             type="text"
             value={msg}
             onChange={(e) => setMsg(e.target.value)}
-            placeholder="问 AI 教练任何问题..."
+            placeholder="和 AI 教练说点什么..."
             aria-label="发消息给 AI 教练"
-            className="flex-1 min-h-11 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
+            className="flex-1 min-h-11 bg-transparent border-none outline-none text-sm md:text-base text-foreground placeholder:text-muted-foreground"
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
           />
@@ -161,7 +127,7 @@ function AIInput({
             type="submit"
             disabled={thinking || !msg.trim()}
             aria-label="发送"
-            className="touch-target w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0 disabled:opacity-50"
+            className="touch-target w-11 h-11 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0 disabled:opacity-50"
             whileTap={TAP_SPRING}
           >
             <svg className="w-4 h-4 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -178,27 +144,66 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false)
   const [thinking, setThinking] = useState(false)
   const [error, setError] = useState("")
-  const [messages, setMessages] = useState<ChatMsg[]>([])
+  const [userMessages, setUserMessages] = useState<UserChatMsg[]>([])
+  const [outfitId, setOutfitId] = useState<CoachOutfitId>(DEFAULT_OUTFIT_ID)
+  const [coachSpeech, setCoachSpeech] = useState<CoachSpeechCue | null>(null)
+  const [bubbleText, setBubbleText] = useState<string | null>(null)
+  const [subtitleProgress, setSubtitleProgress] = useState(1)
+  const [speechMessageKey, setSpeechMessageKey] = useState(0)
   const greeting = getGreeting()
   const scrollRef = useRef<HTMLDivElement>(null)
   const msgId = useRef(0)
+  const speechToken = useRef(0)
+  const speechCtrlRef = useRef<Awaited<ReturnType<typeof playCoachSpeech>> | null>(null)
 
   useEffect(() => {
     setMounted(true)
+    return () => {
+      speechCtrlRef.current?.stop()
+      stopCoachSpeech()
+    }
   }, [])
 
-  // auto-scroll to bottom when new message arrives
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages, thinking])
+  }, [userMessages, thinking])
+
+  useEffect(() => {
+    if (!bubbleText) {
+      setSubtitleProgress(0)
+      return
+    }
+    if (!coachSpeech?.getElapsedSec || !coachSpeech.durationMs) {
+      setSubtitleProgress(1)
+      return
+    }
+
+    let raf = 0
+    const tick = () => {
+      const durationSec = coachSpeech.durationMs! / 1000
+      const p = durationSec > 0 ? Math.min(1, coachSpeech.getElapsedSec!() / durationSec) : 1
+      setSubtitleProgress(p)
+      if (p < 0.999) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [coachSpeech?.token, coachSpeech?.durationMs, bubbleText])
 
   const handleSend = async (content: string) => {
-    const userMsg: ChatMsg = { id: ++msgId.current, role: "user", text: content }
-    setMessages((prev) => [...prev, userMsg])
+    const userMsg: UserChatMsg = { id: ++msgId.current, text: content }
+    setUserMessages((prev) => {
+      const next = [...prev, userMsg]
+      return next.length > MAX_VISIBLE_USER_MSGS ? next.slice(-MAX_VISIBLE_USER_MSGS) : next
+    })
     setThinking(true)
     setError("")
+    speechCtrlRef.current?.stop()
+    speechCtrlRef.current = null
+    setCoachSpeech(null)
+    setBubbleText(null)
+    setSubtitleProgress(0)
     try {
       const res = await fetch("/api/ai-chat", {
         method: "POST",
@@ -210,8 +215,27 @@ export default function HomePage() {
         setError(data?.detail || data?.error || "AI 暂时不可用")
         return
       }
-      const aiMsg: ChatMsg = { id: ++msgId.current, role: "ai", text: data.reply || "" }
-      setMessages((prev) => [...prev, aiMsg])
+      const reply = data.reply || ""
+      const token = ++speechToken.current
+      setSpeechMessageKey(token)
+      setBubbleText(reply)
+      setSubtitleProgress(0)
+
+      const speechCtrl = await playCoachSpeech(reply)
+      speechCtrlRef.current = speechCtrl
+      setCoachSpeech({
+        text: reply,
+        token,
+        durationMs: speechCtrl.durationMs,
+        getElapsedSec: speechCtrl.getElapsedSec,
+      })
+
+      speechCtrl.done.finally(() => {
+        if (speechCtrlRef.current === speechCtrl) {
+          speechCtrlRef.current = null
+          setCoachSpeech(null)
+        }
+      })
     } catch {
       setError("网络异常，请稍后再试")
     } finally {
@@ -220,16 +244,17 @@ export default function HomePage() {
   }
 
   if (!mounted) {
-    return <div className="min-h-screen bg-gradient-to-br from-cream via-peach/10 to-lilac/20 flex items-center justify-center">
-      <p className="text-sm text-muted-foreground">加载中...</p>
-    </div>
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-cream via-peach/10 to-lilac/20 flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">加载中...</p>
+      </div>
+    )
   }
 
-  const hasMessages = messages.length > 0
+  const hasMessages = userMessages.length > 0
 
   return (
-    <div className="h-screen overflow-hidden bg-background flex flex-col relative">
-      {/* 背景 */}
+    <div className="min-h-screen md:h-screen overflow-hidden bg-background flex flex-col relative">
       <div className="fixed inset-0 pointer-events-none -z-10">
         <BackgroundEffects density="light" />
         <motion.div
@@ -244,138 +269,147 @@ export default function HomePage() {
         />
       </div>
 
-      {/* 极简顶栏 — 不遮内容 */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-2.5">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-sm">
-            <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="8" r="4" />
-              <path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" />
-            </svg>
-          </div>
-          <span className="font-brand text-[17px] bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">灵息</span>
-          <span className="text-[11px] text-muted-foreground">AI 教练</span>
+      {/* 顶栏 */}
+      <div className="flex-shrink-0 flex items-center justify-between px-4 md:px-8 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-2">
+        <div className="flex items-center gap-2.5">
+          <span className="font-brand text-xl md:text-2xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">灵息</span>
+          <span className="text-xs md:text-sm text-muted-foreground hidden sm:inline">AI 数字人教练</span>
         </div>
-        <div className="flex items-center gap-1 text-[11px] text-green-500">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+        <div className="flex items-center gap-1.5 text-xs text-green-600">
+          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
           在线
         </div>
       </div>
 
-      {/* 内容区 */}
-      <div className="flex-1 min-h-0 flex flex-col pb-[calc(env(safe-area-inset-bottom,0px)+5.25rem)] md:pb-6 overflow-hidden">
+      {/* 中间 3D 舞台 — 居中 */}
+      <div
+        className={`relative flex-shrink-0 w-full flex justify-center px-4 transition-[height] duration-500 ${
+          hasMessages ? "h-[34vh] md:h-[42vh]" : "h-[min(48vh,480px)] md:h-[min(52vh,560px)]"
+        }`}
+      >
+        <div className="relative h-full w-full max-w-[min(100%,520px)]">
+          {/* 左：模型独占区 | 右：云朵专用区 — 物理隔离，云朵不会压住模型 */}
+          <div className="grid h-full grid-cols-[minmax(0,1fr)_138px] sm:grid-cols-[minmax(0,1fr)_152px] md:grid-cols-[minmax(0,1fr)_168px]">
+            <div className="relative min-w-0 h-full overflow-hidden">
+              <DigitalCoach
+                view="full"
+                outfitId={outfitId}
+                speech={coachSpeech}
+                onSpeechEnd={() => setCoachSpeech(null)}
+                className="absolute inset-0 h-full w-full"
+              />
+
+              {/* 头部锚点 — 尖角对准此处（不可见） */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute top-[15%] left-[54%] h-1 w-1 -translate-x-1/2 opacity-0"
+                data-coach-head-anchor
+              />
+
+              <div className="absolute top-2 right-0 z-20 md:top-3">
+                <WardrobeButton value={outfitId} onChange={setOutfitId} />
+              </div>
+
+              <div className="absolute bottom-1 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full glass-strong px-3 py-1 text-[11px] text-foreground/80 shadow-sm">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
+                AI 教练在线
+              </div>
+            </div>
+
+            <div className="relative h-full overflow-visible pointer-events-none">
+              <CoachSpeechBubble
+                text={bubbleText}
+                thinking={thinking}
+                progress={subtitleProgress}
+                messageKey={speechMessageKey}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 下方对话区 */}
+      <div className="flex-1 min-h-0 flex flex-col px-4 md:px-8 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] max-w-2xl mx-auto w-full">
         <AnimatePresence mode="wait">
           {!hasMessages ? (
-            /* 空状态：头像 + 问候 + 快捷问题 */
             <motion.div
               key="empty"
-              className="flex-1 flex flex-col items-center justify-center px-4 gap-5 overflow-y-auto"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col justify-start gap-4 py-2 md:py-4 overflow-y-auto"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
             >
-              {/* 头像 */}
-              <motion.div
-                className="relative"
-                initial={{ scale: 0.85, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.7, ease: "easeOut" }}
-              >
-                <CoachAvatar />
-              </motion.div>
+              <div className="hero-card rounded-2xl px-5 py-4 md:px-6 md:py-5">
+                <p className="text-base md:text-lg text-foreground/90 leading-relaxed">{greeting}</p>
+                <p className="text-sm text-muted-foreground mt-2">我是你的 AI 闺蜜教练，有任何健康、运动、情绪问题都可以问我 ✨</p>
+              </div>
 
-              {/* 问候气泡 */}
-              <motion.div
-                className="w-full max-w-xs"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <div className="hero-card rounded-2xl px-4 py-3 text-center">
-                  <p className="text-sm text-foreground/85 leading-relaxed">{greeting}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">有任何健康问题都可以问我哦 ✨</p>
-                </div>
-              </motion.div>
-
-              {/* 快捷问题 chips */}
-              <motion.div
-                className="w-full max-w-xs flex flex-wrap justify-center gap-2"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.45 }}
-              >
+              <div className="flex flex-wrap gap-2 md:gap-2.5">
                 {QUICK_QUESTIONS.map((q, i) => (
                   <motion.button
                     key={q}
-                    className="px-3.5 py-2 rounded-full glass border border-white/50 text-[12px] text-foreground/75 hover:text-foreground hover:bg-white/50 transition-colors active:scale-95 touch-target"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.5 + i * 0.07 }}
+                    className="px-4 py-2.5 rounded-full glass border border-white/50 text-sm text-foreground/75 hover:text-foreground hover:bg-white/50 transition-colors active:scale-95"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 + i * 0.06 }}
                     whileTap={TAP_SPRING}
                     onClick={() => handleSend(q)}
-                    aria-label={`快捷问题：${q}`}
                   >
                     {q}
                   </motion.button>
                 ))}
-              </motion.div>
+              </div>
             </motion.div>
           ) : (
-            /* 对话历史 */
             <motion.div
               key="chat"
               ref={scrollRef}
-              className="flex-1 overflow-y-auto px-4 py-3 space-y-3"
+              className="flex-1 overflow-y-auto overflow-x-hidden py-2 pt-3 space-y-4 md:space-y-5"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             >
-              {messages.map((m) => (
-                <ChatBubble key={m.id} msg={m} />
-              ))}
+              <AnimatePresence mode="popLayout" initial={false}>
+                {userMessages.map((m) => (
+                  <UserChatBubble key={m.id} msg={m} />
+                ))}
+              </AnimatePresence>
 
               {thinking && (
-                <motion.div
-                  className="flex gap-2"
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0 self-end shadow-sm">
-                    <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <motion.div className="flex gap-2.5" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0 self-end shadow-sm">
+                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
                       <circle cx="12" cy="8" r="4" />
                       <path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" />
                     </svg>
                   </div>
-                  <div className="px-3.5 py-2.5 rounded-2xl rounded-bl-sm bg-card/90 border border-border/30 backdrop-blur-sm shadow-sm">
+                  <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-card/92 border border-border/30 backdrop-blur-sm shadow-sm">
                     <ThinkingDots />
                   </div>
                 </motion.div>
               )}
 
-              {!!error && (
-                <p className="text-xs text-destructive text-center py-2">{error}</p>
-              )}
+              {!!error && <p className="text-sm text-destructive text-center py-2">{error}</p>}
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
 
-      {/* 吸底输入区 */}
-      <div className="bottom-dock md:static md:bottom-auto mobile-shell md:pb-6">
-        <AIInput onSend={handleSend} thinking={thinking} />
-        {hasMessages && (
-          <div className="flex gap-2 mt-2 overflow-x-auto scrollbar-hide pb-0.5">
-            {QUICK_QUESTIONS.map((q) => (
-              <motion.button
-                key={q}
-                className="flex-shrink-0 text-[11px] px-3 py-1.5 rounded-full glass border border-white/40 text-muted-foreground whitespace-nowrap touch-target active:bg-white/50 transition-colors"
-                whileTap={TAP_SPRING}
-                onClick={() => handleSend(q)}
-              >
-                {q}
-              </motion.button>
-            ))}
-          </div>
-        )}
+        <div className="flex-shrink-0 pt-3">
+          <AIInput onSend={handleSend} thinking={thinking} />
+          {hasMessages && (
+            <div className="flex gap-2 mt-2.5 overflow-x-auto scrollbar-hide">
+              {QUICK_QUESTIONS.map((q) => (
+                <motion.button
+                  key={q}
+                  className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full glass border border-white/40 text-muted-foreground whitespace-nowrap hover:text-foreground transition-colors"
+                  whileTap={TAP_SPRING}
+                  onClick={() => handleSend(q)}
+                >
+                  {q}
+                </motion.button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

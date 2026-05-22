@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <title>她健康 Shealth</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: linear-gradient(135deg, #fdf8f3, #fce8ef 40%, #f3ecff);
+        color: #5c4a62;
+        text-align: center;
+      }
+      .card {
+        max-width: 320px;
+        padding: 28px 24px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 12px 40px rgba(84, 52, 98, 0.08);
+      }
+      h1 { font-size: 1.25rem; margin: 0 0 8px; color: #3d2f48; }
+      p { margin: 0; font-size: 0.875rem; line-height: 1.6; }
+      code { font-size: 0.75rem; background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>她健康</h1>
+      <p id="msg">正在启动…</p>
+    </div>
+    <script>
+      ;(function () {
+        var msg = document.getElementById('msg')
+        var url = window.__CAPACITOR_SERVER_URL__
+        if (url) {
+          location.replace(url)
+          return
+        }
+        msg.innerHTML =
+          '请在构建 App 前设置环境变量 <code>CAPACITOR_SERVER_URL</code>，<br />指向已部署的 HTTPS 地址，然后执行 <code>npm run cap:sync</code>。'
+      })()
+    </script>
+  </body>
+</html>

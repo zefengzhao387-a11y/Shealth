@@ -8,58 +8,31 @@ import { Petal, Sparkle, Ripple, BackgroundEffects } from "@/components/shared/e
 import { LiveStatsBoard } from "@/components/shared/live-stats"
 import { CommunityShowcase } from "@/components/shared/community-showcase"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { TAP_SPRING } from "@/lib/motion-presets"
+
+const DigitalCoach = dynamic(
+  () => import("@/components/3d/digital-coach").then((m) => m.DigitalCoach),
+  { ssr: false, loading: () => <div className="w-full h-full animate-pulse bg-primary/5" /> },
+)
 
 // ── Grain overlay ──────────────────────────────────────────
 function GrainOverlay() {
   return <div className="grain-overlay" aria-hidden />
 }
 
-// ── AI 教练头像区 ──────────────────────────────────────────
+// ── AI 教练 3D 数字人 ──────────────────────────────────────
 function AICoachArea() {
   return (
     <motion.div
-      className="relative w-52 h-52 md:w-64 md:h-64"
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ duration: 1, delay: 0.6, ease: "easeOut" }}
+      className="relative w-56 h-[20rem] md:w-72 md:h-[28rem]"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.9, delay: 0.5, ease: "easeOut" }}
     >
+      <DigitalCoach view="full" className="absolute inset-0 h-full w-full" />
       <motion.div
-        className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20"
-        animate={{ scale: [1, 1.08, 1], opacity: [0.5, 0.8, 0.5] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <div className="absolute inset-4 glass rounded-full overflow-hidden">
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        />
-      </div>
-      {/* 核心光晕球 */}
-      <motion.div
-        className="absolute inset-2 rounded-full overflow-hidden bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/20 flex items-center justify-center"
-        animate={{ scale: [1, 1.02, 1] }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <motion.div
-          className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/40 to-secondary/40 flex items-center justify-center"
-          animate={{ scale: [1, 1.05, 1], opacity: [0.8, 1, 0.8] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <svg className="w-8 h-8 text-primary-foreground/80" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="8" r="4" />
-            <path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" />
-          </svg>
-        </motion.div>
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-t from-primary/20 via-transparent to-secondary/10 pointer-events-none"
-          animate={{ opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </motion.div>
-      <motion.div
-        className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full glass-strong text-xs text-foreground flex items-center gap-1.5 whitespace-nowrap"
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full glass-strong text-xs text-foreground flex items-center gap-1.5 whitespace-nowrap z-10"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.2 }}
@@ -71,9 +44,6 @@ function AICoachArea() {
         />
         AI 教练在线
       </motion.div>
-      {[...Array(6)].map((_, i) => (
-        <Sparkle key={i} x={15 + (i % 3) * 30} y={15 + Math.floor(i / 3) * 60} delay={i * 0.4} />
-      ))}
     </motion.div>
   )
 }

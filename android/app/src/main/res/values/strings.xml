@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">她健康</string>
+    <string name="title_activity_main">她健康</string>
+    <string name="package_name">com.shealth.app</string>
+    <string name="custom_url_scheme">com.shealth.app</string>
+</resources>

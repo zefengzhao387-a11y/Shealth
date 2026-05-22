@@ -5,11 +5,13 @@ import { PointsProvider } from "@/contexts/points-context"
 import { AuthModal } from "@/components/shared/auth-modal"
 import { PointsPopup } from "@/components/shared/points-popup"
 import { BottomNav } from "@/components/shared/bottom-nav"
+import { CapacitorInit } from "@/components/shared/capacitor-init"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <PointsProvider>
+        <CapacitorInit />
         {children}
         <AuthModal />
         <PointsPopup />
