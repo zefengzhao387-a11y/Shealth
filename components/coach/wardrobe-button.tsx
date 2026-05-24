@@ -54,7 +54,7 @@ export function WardrobeButton({ value, onChange, className }: WardrobeButtonPro
       <ResponsiveBottomSheet
         open={open}
         onOpenChange={setOpen}
-        title="教练换装"
+        title="灵息换装"
         description="挑选训练服配色，实时同步到 3D 模型"
         contentClassName="pb-2"
       >

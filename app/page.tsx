@@ -10,10 +10,21 @@ import { CommunityShowcase } from "@/components/shared/community-showcase"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { TAP_SPRING } from "@/lib/motion-presets"
+import { CoachModuleLinks } from "@/components/coach/coach-module-links"
 
 const DigitalCoach = dynamic(
   () => import("@/components/3d/digital-coach").then((m) => m.DigitalCoach),
-  { ssr: false, loading: () => <div className="w-full h-full animate-pulse bg-primary/5" /> },
+  {
+    ssr: false,
+    loading: () => (
+      <div className="relative w-full h-full">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+          <p className="text-sm text-muted-foreground">加载中...</p>
+        </div>
+      </div>
+    ),
+  },
 )
 
 // ── Grain overlay ──────────────────────────────────────────
@@ -24,27 +35,32 @@ function GrainOverlay() {
 // ── AI 教练 3D 数字人 ──────────────────────────────────────
 function AICoachArea() {
   return (
-    <motion.div
-      className="relative w-56 h-[20rem] md:w-72 md:h-[28rem]"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.9, delay: 0.5, ease: "easeOut" }}
-    >
-      <DigitalCoach view="full" className="absolute inset-0 h-full w-full" />
+    <div className="flex items-start gap-2 sm:gap-3">
+      <CoachModuleLinks variant="sidebar" className="hidden sm:flex flex-shrink-0 mt-6" />
+      <div className="flex flex-col items-center">
       <motion.div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full glass-strong text-xs text-foreground flex items-center gap-1.5 whitespace-nowrap z-10"
-        initial={{ opacity: 0, y: 10 }}
+        className="relative w-[17.5rem] h-[26rem] sm:w-80 sm:h-[30rem] md:w-[22rem] md:h-[34rem]"
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.2 }}
+        transition={{ duration: 0.9, delay: 0.5, ease: "easeOut" }}
       >
-        <motion.span
-          className="w-2 h-2 rounded-full bg-green-400"
-          animate={{ scale: [1, 1.2, 1], opacity: [1, 0.7, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        />
-        AI 教练在线
+        <DigitalCoach view="hero" showPlatform={false} className="absolute inset-0 h-full w-full" />
+        <motion.div
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full glass-strong text-xs text-foreground flex items-center gap-1.5 whitespace-nowrap z-10"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2 }}
+        >
+          <motion.span
+            className="w-2 h-2 rounded-full bg-green-400"
+            animate={{ scale: [1, 1.2, 1], opacity: [1, 0.7, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+          灵息在线
+        </motion.div>
       </motion.div>
-    </motion.div>
+      </div>
+    </div>
   )
 }
 
@@ -72,7 +88,7 @@ function HeroButton() {
           transition={{ duration: 2, delay: 0.6, repeat: Infinity, ease: "easeOut" }}
         />
         <span className="relative z-10 flex items-center gap-2">
-          开启她健康之旅
+          和灵息对话
           <motion.span
             animate={{ x: [0, 4, 0] }}
             transition={{ duration: 1.5, repeat: Infinity }}
@@ -110,7 +126,7 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
             transition={{ duration: 0.8, delay: 0.4 }}
           />
           <span className="text-[10px] md:text-xs tracking-[0.28em] md:tracking-[0.35em] uppercase text-primary/60 font-medium">
-            女性专属 AI 健身教练
+            3D 数字人 · 女性健康陪伴
           </span>
         </motion.div>
 
@@ -170,8 +186,8 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
           transition={{ duration: 0.6, delay: 1.1 }}
         >
           {[
-            { label: "活跃用户", value: "240万+" },
-            { label: "精选课程", value: "800+" },
+            { label: "数字人对话", value: "240万+" },
+            { label: "实时口型", value: "同步" },
             { label: "用户好评", value: "4.9★" },
           ].map((stat) => (
             <div key={stat.label} className="hidden sm:block">
@@ -180,8 +196,8 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
             </div>
           ))}
           <div className="sm:hidden premium-card rounded-xl px-3 py-2">
-            <div className="text-sm font-semibold text-foreground">240万+ 活跃用户</div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">与你一起坚持</div>
+            <div className="text-sm font-semibold text-foreground">240万+ 与灵息对话</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">面对面陪伴</div>
           </div>
         </motion.div>
       </div>
@@ -213,8 +229,8 @@ function HeroSection({ onScrollDown }: { onScrollDown: () => void }) {
 function FeaturesSection() {
   const features = [
     {
-      title: "AI 灵息陪伴",
-      description: "专属 AI 闺蜜教练，懂你的生理期、理解你的情绪，用最温柔的方式迎接每一天。语音/文字早晚问候，今日轻量目标展示。",
+      title: "3D 数字人灵息",
+      description: "项目核心：可对话的 3D 数字人。实时语音与口型、招手互动、数字衣橱换装。懂生理期与情绪节奏，像闺蜜一样面对面陪你。",
       icon: (
         <svg className="w-7 h-7 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
@@ -227,7 +243,7 @@ function FeaturesSection() {
     },
     {
       title: "柔和悦动专区",
-      description: "普拉提、瑜伽、经期舒缓、冥想助眠。AI 视觉实时纠错，流光线条温柔指引你的每一个动作。动作到位时，花瓣绽放作为正向反馈。",
+      description: "灵息推荐适合你的课程：普拉提、瑜伽、经期舒缓、冥想助眠。训练时 AI 视觉纠错，动作到位时花瓣绽放作为正向反馈。",
       icon: (
         <svg className="w-7 h-7 text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path d="M12 2L2 7l10 5 10-5-10-5z" />
@@ -252,7 +268,7 @@ function FeaturesSection() {
     },
     {
       title: "镜心个人中心",
-      description: "维度数据可视化、贝塞尔曲线记录蜕变轨迹。数字衣橱与成就徽章，用运动获得的轻息币兑换好看的虚拟装扮。",
+      description: "记录身体维度与蜕变轨迹，让灵息更懂你的变化。成就徽章与轻息币，可为灵息解锁更多装扮与互动。",
       icon: (
         <svg className="w-7 h-7 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -276,8 +292,8 @@ function FeaturesSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="fluid-title font-medium text-foreground">四大核心模块</h2>
-          <span className="text-muted-foreground/40 text-xs font-mono tracking-widest">功能 · 04</span>
+          <h2 className="fluid-title font-medium text-foreground">以灵息为中心</h2>
+          <span className="text-muted-foreground/40 text-xs font-mono tracking-widest">数字人 · 01</span>
         </motion.div>
 
         {/* Editorial numbered rows */}
@@ -346,7 +362,7 @@ function HighlightsSection() {
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
         </svg>
       ),
-      large: true,
+      accent: "from-peach/30 to-primary/10",
     },
     {
       title: "AI 流光体态纠正",
@@ -357,6 +373,7 @@ function HighlightsSection() {
           <path d="M12 6v6l4 2" />
         </svg>
       ),
+      accent: "from-lilac/30 to-secondary/10",
     },
     {
       title: "助眠冥想与呼吸",
@@ -366,6 +383,7 @@ function HighlightsSection() {
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
         </svg>
       ),
+      accent: "from-sage/25 to-accent/10",
     },
     {
       title: "微光小队打卡",
@@ -377,6 +395,7 @@ function HighlightsSection() {
           <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
       ),
+      accent: "from-primary/15 to-peach/10",
     },
     {
       title: "数字衣橱成就",
@@ -388,6 +407,7 @@ function HighlightsSection() {
           <path d="M16 10a4 4 0 0 1-8 0" />
         </svg>
       ),
+      accent: "from-secondary/15 to-lilac/10",
     },
     {
       title: "贝塞尔曲线数据",
@@ -398,12 +418,12 @@ function HighlightsSection() {
           <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
         </svg>
       ),
+      accent: "from-accent/15 to-sage/10",
     },
   ]
 
   return (
     <section className="relative py-14 md:py-28 px-4 md:px-12 overflow-hidden">
-
       <div className="relative z-10 max-w-6xl mx-auto">
         <motion.div
           className="flex items-baseline justify-between pb-5 border-b border-border/30 mb-10"
@@ -416,8 +436,8 @@ function HighlightsSection() {
           <span className="text-muted-foreground/40 text-xs font-mono tracking-widest">特色 · 06</span>
         </motion.div>
 
-        {/* 移动端横滑 / 桌面端 Bento */}
-        <div className="md:hidden -mx-4 px-4 snap-scroll-x pb-1">
+        {/* 移动端：横滑卡片 */}
+        <div className="flex snap-scroll-x pb-1 -mx-4 px-4 md:!hidden">
           {highlights.map((item, i) => (
             <motion.div
               key={item.title}
@@ -428,7 +448,7 @@ function HighlightsSection() {
               transition={{ delay: i * 0.05, duration: 0.4 }}
               whileTap={TAP_SPRING}
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-secondary/15 flex items-center justify-center flex-shrink-0">
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.accent} flex items-center justify-center flex-shrink-0`}>
                 {item.icon}
               </div>
               <div>
@@ -438,25 +458,34 @@ function HighlightsSection() {
             </motion.div>
           ))}
         </div>
-        <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-4">
+
+        {/* 桌面端：Bento 网格（仅一处，无重复） */}
+        <div className="hidden md:grid md:grid-cols-3 md:grid-rows-[auto_auto_auto] gap-5">
           {highlights.map((item, i) => (
             <motion.div
               key={item.title}
-              className={`premium-card rounded-2xl p-6 flex flex-col gap-4 ${
-                item.large ? "lg:row-span-2" : ""
-              }`}
+              className={[
+                "premium-card group rounded-3xl p-7 flex flex-col gap-5 transition-all duration-300",
+                "hover:shadow-[0_12px_40px_rgba(230,137,171,0.12)] hover:-translate-y-1",
+                i === 0 ? "md:col-span-2 md:row-span-2 md:p-9" : "",
+                i === 1 ? "md:col-start-3 md:row-start-1" : "",
+                i === 2 ? "md:col-start-3 md:row-start-2" : "",
+              ].join(" ")}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.07, duration: 0.5 }}
-              whileHover={{ scale: 1.025, y: -4 }}
+              transition={{ delay: i * 0.06, duration: 0.5 }}
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-secondary/15 flex items-center justify-center flex-shrink-0">
+              <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${item.accent} flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-300`}>
                 {item.icon}
               </div>
-              <div>
-                <h3 className="font-medium text-foreground mb-1.5 text-sm md:text-base">{item.title}</h3>
-                <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">{item.description}</p>
+              <div className="flex-1">
+                <h3 className={`font-medium text-foreground mb-2 ${i === 0 ? "text-xl" : "text-base"}`}>
+                  {item.title}
+                </h3>
+                <p className={`text-muted-foreground leading-relaxed ${i === 0 ? "text-sm max-w-md" : "text-sm"}`}>
+                  {item.description}
+                </p>
               </div>
             </motion.div>
           ))}
@@ -553,7 +582,7 @@ function AboutSection() {
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
           >
-            她健康摒弃了传统健身 App 的硬核数据和高压训练，用柔和的色彩、温暖的 AI 陪伴、精准的体态纠正，打造一个属于你的专属健身空间。
+            她健康以 3D 数字人灵息为入口，摒弃传统健身 App 的硬核与高压。你看到的不是冷冰冰的界面，而是一个会回应、会动作、会记住你的陪伴者。
           </motion.p>
           <motion.p
             className="text-foreground/65 leading-loose text-sm md:text-base"
@@ -562,7 +591,7 @@ function AboutSection() {
             viewport={{ once: true }}
             transition={{ delay: 0.3 }}
           >
-            在这里，你不需要和任何人比较，只需要成为更好的自己。每一次练习都是一朵花开，每一滴汗水都是最美的蜕变。
+            和灵息聊运动、聊睡眠、聊心情——训练、社区与数据都围绕这位数字人展开。你不需要和任何人比较，只需要成为更好的自己。
           </motion.p>
         </div>
       </div>
@@ -594,7 +623,7 @@ function CTASection() {
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          告诉 AI 教练你的想法，让我们一起开始这段旅程
+          和灵息打个招呼，开始你们的第一次面对面聊天
         </motion.p>
 
         <motion.div
@@ -612,7 +641,7 @@ function CTASection() {
           <div className="relative flex items-center gap-2.5 md:gap-3 bg-card rounded-full px-4 md:px-6 py-3.5 md:py-4">
             <input
               type="text"
-              placeholder="告诉 AI 教练你今天想怎么动..."
+              placeholder="今天想聊运动、睡眠，还是心情？"
               className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground text-[13px] md:text-sm"
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
@@ -700,7 +729,7 @@ function TodayPlanSection() {
           <span className="text-muted-foreground/40 text-xs font-mono tracking-widest">计划</span>
         </motion.div>
 
-        <div className="md:hidden -mx-4 px-4 snap-scroll-x pb-1">
+        <div className="flex snap-scroll-x pb-1 -mx-4 px-4 md:!hidden">
           {planCards.map((card, i) => (
             <motion.article
               key={card.title}

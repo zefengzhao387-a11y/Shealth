@@ -14,7 +14,7 @@ export function Footer({ showCTA = true }: { showCTA?: boolean }) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            准备好开启你的蜕变之旅了吗？
+            准备好和灵息见一面了吗？
           </motion.h3>
           <Link href="/home">
             <motion.button
@@ -22,7 +22,7 @@ export function Footer({ showCTA = true }: { showCTA?: boolean }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}
             >
-              立即体验<span className="mx-1">她健康</span>
+              和灵息对话
             </motion.button>
           </Link>
         </div>

@@ -11,8 +11,9 @@ import {
   resetVisemeWeights,
   type VisemeKey,
 } from '@/lib/coach-speech'
+import { loadMixamoWaveAnimation, createVrmBindPoseClip } from '@/lib/load-mixamo-wave-animation'
 
-export type CoachView = 'portrait' | 'circle' | 'full'
+export type CoachView = 'portrait' | 'circle' | 'full' | 'hero'
 
 export type CoachSpeechCue = {
   text: string
@@ -39,8 +40,9 @@ type IdleRestPose = {
   rUpperArm: THREE.Quaternion
   lLowerArm: THREE.Quaternion
   rLowerArm: THREE.Quaternion
+  rHand: THREE.Quaternion
   lShoulderRotZ: number
-  rShoulderRotZ: number
+  rShoulder: THREE.Quaternion
 }
 
 const _tmpQuatA = new THREE.Quaternion()
@@ -48,7 +50,12 @@ const _tmpQuatB = new THREE.Quaternion()
 const _axisX = new THREE.Vector3(1, 0, 0)
 const _axisZ = new THREE.Vector3(0, 0, 1)
 
-const DEFAULT_MODEL = '/models/AvatarSample_A.vrm'
+const DEFAULT_MODEL = '/models/coach.vrm'
+/** Mixamo 招手动画（.fbx / .glb，前端重定向到 VRM） */
+const DEFAULT_WAVE_ANIM = '/animations/Waving.fbx'
+const USE_MIXAMO_WAVE = true
+
+const WELCOME_VOICE_TEXT = '今天锻炼了吗？'
 const MAX_DELTA = 1 / 30
 
 type IdleAction = 'none' | 'stretchLeft' | 'stretchRight' | 'wave'
@@ -237,6 +244,13 @@ function computeCameraFrame(
       fov = 32
       padding = 1.12
       break
+    case 'hero':
+      targetY = metrics.footY + metrics.bodyHeight * 0.46
+      visibleHeight = metrics.bodyHeight + 0.24
+      visibleWidth = Math.max(metrics.handSpan * 1.32, metrics.shoulderWidth * 1.58, 0.72)
+      fov = 31
+      padding = 1.02
+      break
     case 'portrait':
     default:
       targetY = metrics.hipsY + torso * 0.68
@@ -346,8 +360,9 @@ function captureIdleRestPose(humanoid: {
     rUpperArm: cloneBoneQuat(humanoid, 'rightUpperArm'),
     lLowerArm: cloneBoneQuat(humanoid, 'leftLowerArm'),
     rLowerArm: cloneBoneQuat(humanoid, 'rightLowerArm'),
+    rHand: cloneBoneQuat(humanoid, 'rightHand'),
     lShoulderRotZ: lShoulder?.rotation.z ?? 0,
-    rShoulderRotZ: rShoulder?.rotation.z ?? 0,
+    rShoulder: cloneBoneQuat(humanoid, 'rightShoulder'),
   }
 }
 
@@ -365,42 +380,315 @@ function stabilizeVrm(vrm: {
   }
 }
 
-function easeInOutCubic(t: number) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+function easeInOutSine(t: number) {
+  return -(Math.cos(Math.PI * THREE.MathUtils.clamp(t, 0, 1)) - 1) / 2
 }
 
-/** 从屏幕左侧平移到展示台（只动整体位置，不转身体、不碰弹簧骨） */
-const ENTRANCE_WALK = {
-  startX: -1.18,
-  startZ: 0.04,
-  /** 预热帧：先静止渲染几帧，等 shader 编译完再开走 */
-  warmupFrames: 5,
-  durationSec: 2.35,
+/** 社区 VRM 标准招手模组（归一化骨骼四元数 [x,y,z,w]） */
+const VRM_WAVE_MODULE = [
+  {
+    rightUpperArm: [0, 0, 0.573, 0.819],
+    rightLowerArm: [-0.13, -0.42, 0.06, 0.89],
+    rightHand: [0, 0, 0, 1],
+  },
+  {
+    rightUpperArm: [0, 0, 0.573, 0.819],
+    rightLowerArm: [-0.13, -0.25, 0.06, 0.95],
+    rightHand: [0, 0, -0.15, 0.98],
+  },
+  {
+    rightUpperArm: [0, 0, 0.573, 0.819],
+    rightLowerArm: [-0.13, -0.55, 0.06, 0.82],
+    rightHand: [0, 0, 0.15, 0.98],
+  },
+] as const
+
+type WaveFrameQuats = {
+  upperArm: THREE.Quaternion
+  lowerArm: THREE.Quaternion
+  hand: THREE.Quaternion
 }
 
-type EntrancePhase = 'warmup' | 'walk' | 'done'
+const VRM_WAVE_FRAMES: WaveFrameQuats[] = VRM_WAVE_MODULE.map((frame) => ({
+  upperArm: new THREE.Quaternion(...frame.rightUpperArm),
+  lowerArm: new THREE.Quaternion(...frame.rightLowerArm),
+  hand: new THREE.Quaternion(...frame.rightHand),
+}))
 
-function applyEntranceWalk(group: THREE.Group, progress: number) {
-  const move = easeInOutCubic(progress)
+const WAVE_PLAYER = {
+  /** rest → 帧 0（举手到位） */
+  upDurationSec: 0.55,
+  /** 帧 1 ↔ 帧 2 每个半摆周期时长 */
+  swingHalfSec: 0.28,
+  /** 来回摆手次数 */
+  swingCycles: 3,
+  /** 帧 0 → rest */
+  downDurationSec: 0.5,
+} as const
 
-  group.position.x = THREE.MathUtils.lerp(ENTRANCE_WALK.startX, 0, move)
-  group.position.z = THREE.MathUtils.lerp(ENTRANCE_WALK.startZ, 0, move)
-  group.position.y = 0
-  group.rotation.y = 0
-  group.scale.setScalar(1)
+type WaveStage = 'up' | 'swing' | 'down' | 'done'
+
+type WaveRuntime = {
+  stage: WaveStage
+  stageProgress: number
+  swingElapsedSec: number
 }
 
-function resetEntrancePose(group: THREE.Group) {
-  group.position.set(0, 0, 0)
-  group.rotation.y = 0
-  group.scale.setScalar(1)
+function createWaveRuntime(): WaveRuntime {
+  return { stage: 'up', stageProgress: 0, swingElapsedSec: 0 }
 }
 
-function getEntranceProgress(startAtMs: number) {
-  const elapsedSec = (performance.now() - startAtMs) / 1000
-  if (elapsedSec <= 0) return 0
-  return Math.min(1, elapsedSec / ENTRANCE_WALK.durationSec)
+function startWaveActionWithCrossFade(
+  mixer: THREE.AnimationMixer,
+  restClip: THREE.AnimationClip,
+  waveClip: THREE.AnimationClip,
+  crossFadeSec: number,
+  loopCount: number,
+  idleActionRef: { current: THREE.AnimationAction | null },
+): THREE.AnimationAction {
+  if (!idleActionRef.current) {
+    const idle = mixer.clipAction(restClip)
+    idle.reset()
+    idle.setLoop(THREE.LoopRepeat, Infinity)
+    idle.play()
+    idleActionRef.current = idle
+  }
+
+  const waveAction = mixer.clipAction(waveClip)
+  waveAction.reset()
+  if (loopCount <= 1) {
+    waveAction.setLoop(THREE.LoopOnce, 1)
+  } else {
+    waveAction.setLoop(THREE.LoopRepeat, loopCount)
+  }
+  waveAction.clampWhenFinished = true
+  waveAction.setEffectiveTimeScale(1)
+  waveAction.setEffectiveWeight(1)
+  waveAction.play()
+
+  idleActionRef.current.crossFadeTo(waveAction, crossFadeSec, false)
+  return waveAction
 }
+
+function fadeWaveBackToIdle(
+  mixer: THREE.AnimationMixer,
+  waveAction: THREE.AnimationAction,
+  restClip: THREE.AnimationClip,
+  crossFadeSec: number,
+  idleActionRef: { current: THREE.AnimationAction | null },
+) {
+  if (!idleActionRef.current) {
+    const idle = mixer.clipAction(restClip)
+    idle.reset()
+    idle.setLoop(THREE.LoopRepeat, Infinity)
+    idle.play()
+    idleActionRef.current = idle
+  }
+  waveAction.crossFadeTo(idleActionRef.current, crossFadeSec, false)
+}
+
+/** Mixamo 重定向 clip；crossFade 从绑定姿态切入 */
+function beginMixamoWaveGreeting(
+  vrm: {
+    humanoid?: {
+      getNormalizedBoneNode: (n: string) => THREE.Object3D | null
+      update: () => void
+    }
+  },
+  rest: IdleRestPose,
+  mixer: THREE.AnimationMixer,
+  waveClip: THREE.AnimationClip,
+  restClip: THREE.AnimationClip,
+  crossFadeSec: number,
+  loopCount: number,
+  idleActionRef: { current: THREE.AnimationAction | null },
+) {
+  if (vrm.humanoid) {
+    applyIdleUpperBody(vrm.humanoid, rest)
+    vrm.humanoid.update()
+  }
+  return startWaveActionWithCrossFade(
+    mixer,
+    restClip,
+    waveClip,
+    crossFadeSec,
+    loopCount,
+    idleActionRef,
+  )
+}
+
+function applyIdleUpperBody(
+  humanoid: { getNormalizedBoneNode: (n: string) => THREE.Object3D | null },
+  rest: IdleRestPose,
+) {
+  const lUpperArm = humanoid.getNormalizedBoneNode('leftUpperArm')
+  const lLowerArm = humanoid.getNormalizedBoneNode('leftLowerArm')
+  const lShoulder = humanoid.getNormalizedBoneNode('leftShoulder')
+  const rUpperArm = humanoid.getNormalizedBoneNode('rightUpperArm')
+  const rLowerArm = humanoid.getNormalizedBoneNode('rightLowerArm')
+  const rShoulder = humanoid.getNormalizedBoneNode('rightShoulder')
+  const rHand = humanoid.getNormalizedBoneNode('rightHand')
+  const hips = humanoid.getNormalizedBoneNode('hips')
+  const head = humanoid.getNormalizedBoneNode('head')
+
+  if (hips) hips.position.y = rest.hipsY
+  if (head) {
+    head.rotation.x = rest.headRotX
+    head.rotation.y = rest.headRotY
+  }
+  if (lUpperArm) lUpperArm.quaternion.copy(rest.lUpperArm)
+  if (lLowerArm) lLowerArm.quaternion.copy(rest.lLowerArm)
+  if (lShoulder) lShoulder.rotation.z = rest.lShoulderRotZ
+  if (rUpperArm) rUpperArm.quaternion.copy(rest.rUpperArm)
+  if (rLowerArm) rLowerArm.quaternion.copy(rest.rLowerArm)
+  if (rShoulder) rShoulder.quaternion.copy(rest.rShoulder)
+  if (rHand) rHand.quaternion.copy(rest.rHand)
+}
+
+function slerpWaveRightArm(
+  humanoid: { getNormalizedBoneNode: (n: string) => THREE.Object3D | null },
+  from: WaveFrameQuats,
+  to: WaveFrameQuats,
+  t: number,
+) {
+  const blend = THREE.MathUtils.clamp(t, 0, 1)
+  const rUpperArm = humanoid.getNormalizedBoneNode('rightUpperArm')
+  const rLowerArm = humanoid.getNormalizedBoneNode('rightLowerArm')
+  const rHand = humanoid.getNormalizedBoneNode('rightHand')
+
+  if (rUpperArm) {
+    _tmpQuatA.copy(from.upperArm).slerp(to.upperArm, blend)
+    rUpperArm.quaternion.copy(_tmpQuatA)
+  }
+  if (rLowerArm) {
+    _tmpQuatA.copy(from.lowerArm).slerp(to.lowerArm, blend)
+    rLowerArm.quaternion.copy(_tmpQuatA)
+  }
+  if (rHand) {
+    _tmpQuatA.copy(from.hand).slerp(to.hand, blend)
+    rHand.quaternion.copy(_tmpQuatA)
+  }
+}
+
+/** rest ↔ 模组帧：t=0 为 rest，t=1 为模组帧 */
+function slerpWaveFromRest(
+  humanoid: { getNormalizedBoneNode: (n: string) => THREE.Object3D | null },
+  rest: IdleRestPose,
+  frameIndex: number,
+  t: number,
+) {
+  applyIdleUpperBody(humanoid, rest)
+  const frame = VRM_WAVE_FRAMES[frameIndex]
+  const blend = THREE.MathUtils.clamp(t, 0, 1)
+  const rUpperArm = humanoid.getNormalizedBoneNode('rightUpperArm')
+  const rLowerArm = humanoid.getNormalizedBoneNode('rightLowerArm')
+  const rHand = humanoid.getNormalizedBoneNode('rightHand')
+
+  if (rUpperArm) {
+    _tmpQuatA.copy(rest.rUpperArm).slerp(frame.upperArm, blend)
+    rUpperArm.quaternion.copy(_tmpQuatA)
+  }
+  if (rLowerArm) {
+    _tmpQuatA.copy(rest.rLowerArm).slerp(frame.lowerArm, blend)
+    rLowerArm.quaternion.copy(_tmpQuatA)
+  }
+  if (rHand) {
+    _tmpQuatA.copy(rest.rHand).slerp(frame.hand, blend)
+    rHand.quaternion.copy(_tmpQuatA)
+  }
+}
+
+function applyWaveFrame(
+  humanoid: { getNormalizedBoneNode: (n: string) => THREE.Object3D | null },
+  rest: IdleRestPose,
+  frameIndex: number,
+) {
+  applyIdleUpperBody(humanoid, rest)
+  slerpWaveRightArm(humanoid, VRM_WAVE_FRAMES[frameIndex], VRM_WAVE_FRAMES[frameIndex], 1)
+}
+
+/**
+ * VRM 招手模组播放器：up(→帧0) → swing(帧1↔2 ×3) → down(帧0→rest)
+ */
+function tickWaveGreeting(
+  runtime: WaveRuntime,
+  delta: number,
+  humanoid: { getNormalizedBoneNode: (n: string) => THREE.Object3D | null; update: () => void },
+  rest: IdleRestPose,
+  expressionManager?: { setValue: (n: string, v: number) => void },
+): boolean {
+  switch (runtime.stage) {
+    case 'up': {
+      runtime.stageProgress = Math.min(
+        1,
+        runtime.stageProgress + delta / WAVE_PLAYER.upDurationSec,
+      )
+      slerpWaveFromRest(humanoid, rest, 0, easeOutCubic(runtime.stageProgress))
+      if (runtime.stageProgress >= 1) {
+        applyWaveFrame(humanoid, rest, 0)
+        runtime.stage = 'swing'
+        runtime.swingElapsedSec = 0
+      }
+      break
+    }
+    case 'swing': {
+      runtime.swingElapsedSec += delta
+      const halfSec = WAVE_PLAYER.swingHalfSec
+      const totalHalfPeriods = WAVE_PLAYER.swingCycles * 2
+
+      if (runtime.swingElapsedSec >= halfSec * totalHalfPeriods) {
+        applyWaveFrame(humanoid, rest, 0)
+        runtime.stage = 'down'
+        runtime.stageProgress = 0
+        break
+      }
+
+      const halfIdx = Math.floor(runtime.swingElapsedSec / halfSec)
+      const tInHalf = easeInOutSine((runtime.swingElapsedSec % halfSec) / halfSec)
+      const fromFrame = halfIdx % 2 === 0 ? 1 : 2
+      const toFrame = halfIdx % 2 === 0 ? 2 : 1
+
+      applyIdleUpperBody(humanoid, rest)
+      slerpWaveRightArm(humanoid, VRM_WAVE_FRAMES[fromFrame], VRM_WAVE_FRAMES[toFrame], tInHalf)
+      break
+    }
+    case 'down': {
+      runtime.stageProgress = Math.min(
+        1,
+        runtime.stageProgress + delta / WAVE_PLAYER.downDurationSec,
+      )
+      slerpWaveFromRest(humanoid, rest, 0, 1 - easeInOutSine(runtime.stageProgress))
+      if (runtime.stageProgress >= 1) {
+        runtime.stage = 'done'
+        applyIdleUpperBody(humanoid, rest)
+      }
+      break
+    }
+    case 'done':
+      applyIdleUpperBody(humanoid, rest)
+      expressionManager?.setValue('happy', 0)
+      return true
+  }
+
+  humanoid.update()
+  expressionManager?.setValue('happy', 0.2)
+  applyVisemes(expressionManager, resetVisemeWeights())
+  return runtime.stage === 'done'
+}
+
+/** 入场：Shader 预热 → 400ms 错峰 → crossFade 招手 → 待机 */
+const ENTRANCE = {
+  staggerDelayMs: 400,
+  crossFadeSec: 0.35,
+  warmupFrames: 12,
+  waveLoadWaitFrames: 60,
+  /** 招手循环次数 */
+  waveLoopCount: 1,
+}
+
+type WaveGreetingPhase = 'playing' | 'fading' | 'done'
+
+type EntrancePhase = 'warmup' | 'greeting' | 'done'
 
 function CameraRig({
   view,
@@ -466,7 +754,9 @@ function VRMScene({
   outfitId,
   speech,
   onSpeechEnd,
-  onLoaded,
+  onSceneReady,
+  onEntranceComplete,
+  onWelcomeVoice,
   onError,
 }: {
   view: CoachView
@@ -475,14 +765,18 @@ function VRMScene({
   outfitId: CoachOutfitId
   speech: CoachSpeechCue | null
   onSpeechEnd?: () => void
-  onLoaded?: () => void
+  onSceneReady?: () => void
+  onEntranceComplete?: () => void
+  onWelcomeVoice?: () => void
   onError?: (msg: string) => void
 }) {
+  const { gl, scene, camera } = useThree()
   const groupRef = useRef<THREE.Group>(null!)
   const entranceRef = useRef<THREE.Group>(null!)
   const vrmRef = useRef<{
     scene: THREE.Object3D
     update: (d: number) => void
+    lookAt?: { autoUpdate: boolean; reset: () => void }
     springBoneManager?: { setInitState: () => void; reset: () => void }
     humanoid?: {
       getNormalizedBoneNode: (n: string) => THREE.Object3D | null
@@ -492,12 +786,23 @@ function VRMScene({
     expressionManager?: { setValue: (n: string, v: number) => void }
   } | null>(null)
   const idleRestRef = useRef<IdleRestPose | null>(null)
+  const restClipRef = useRef<THREE.AnimationClip | null>(null)
   const metricsRef = useRef<ModelMetrics | null>(null)
   const entrancePhaseRef = useRef<EntrancePhase>('warmup')
-  const entranceProgressRef = useRef(0)
-  const entranceStartAtRef = useRef(0)
+  const waveRuntimeRef = useRef<WaveRuntime>(createWaveRuntime())
+  const waveMixerRef = useRef<THREE.AnimationMixer | null>(null)
+  const waveClipRef = useRef<THREE.AnimationClip | null>(null)
+  const waveActionRef = useRef<THREE.AnimationAction | null>(null)
+  const idleActionRef = useRef<THREE.AnimationAction | null>(null)
+  const waveAnimReadyRef = useRef(false)
+  const waveUseMixamoRef = useRef(false)
+  const waveGreetingPhaseRef = useRef<WaveGreetingPhase>('done')
+  const waveFadeStartedAtRef = useRef(0)
+  const entranceStaggerReadyRef = useRef(false)
   const entranceWarmupFramesRef = useRef(0)
-  const loaderVisibleRef = useRef(true)
+  const glCompiledRef = useRef(false)
+  const entranceCompleteFiredRef = useRef(false)
+  const sceneReadyFiredRef = useRef(false)
   const actionRef = useRef<IdleAction>('none')
   const actionProgressRef = useRef(0)
   const nextActionAtRef = useRef(0)
@@ -510,23 +815,39 @@ function VRMScene({
   } | null>(null)
   const speechEndedTokenRef = useRef<number | null>(null)
 
-  const onLoadedRef = useRef(onLoaded)
+  const onSceneReadyRef = useRef(onSceneReady)
   const onErrorRef = useRef(onError)
   const onSpeechEndRef = useRef(onSpeechEnd)
-  onLoadedRef.current = onLoaded
+  const onEntranceCompleteRef = useRef(onEntranceComplete)
+  const onWelcomeVoiceRef = useRef(onWelcomeVoice)
+  onSceneReadyRef.current = onSceneReady
   onErrorRef.current = onError
   onSpeechEndRef.current = onSpeechEnd
+  onEntranceCompleteRef.current = onEntranceComplete
+  onWelcomeVoiceRef.current = onWelcomeVoice
 
   useEffect(() => {
     let cancelled = false
+    let staggerTimer: ReturnType<typeof setTimeout> | null = null
     metricsRef.current = null
     vrmRef.current = null
     idleRestRef.current = null
+    restClipRef.current = null
     entrancePhaseRef.current = 'warmup'
-    entranceProgressRef.current = 0
-    entranceStartAtRef.current = 0
+    waveRuntimeRef.current = createWaveRuntime()
+    waveMixerRef.current = null
+    waveClipRef.current = null
+    waveActionRef.current = null
+    idleActionRef.current = null
+    waveAnimReadyRef.current = false
+    waveUseMixamoRef.current = false
+    waveGreetingPhaseRef.current = 'done'
+    waveFadeStartedAtRef.current = 0
+    entranceStaggerReadyRef.current = false
     entranceWarmupFramesRef.current = 0
-    loaderVisibleRef.current = true
+    glCompiledRef.current = false
+    entranceCompleteFiredRef.current = false
+    sceneReadyFiredRef.current = false
     actionRef.current = 'none'
     actionProgressRef.current = 0
     nextActionAtRef.current = 0
@@ -582,22 +903,44 @@ function VRMScene({
               stabilizeVrm(vrm)
               vrm.scene.updateMatrixWorld(true)
               idleRestRef.current = captureIdleRestPose(vrm.humanoid)
+              restClipRef.current = createVrmBindPoseClip(vrm)
             }
+
+            waveMixerRef.current = new THREE.AnimationMixer(vrm.scene)
+            if (USE_MIXAMO_WAVE) {
+              void (async () => {
+                try {
+                  const clip = await loadMixamoWaveAnimation(DEFAULT_WAVE_ANIM, vrm)
+                  if (cancelled) return
+                  waveClipRef.current = clip
+                  waveAnimReadyRef.current = !!clip
+                } catch (error) {
+                  console.warn('[VRM] Waving 加载异常，回退四元数模组', error)
+                  waveAnimReadyRef.current = false
+                }
+              })()
+            } else {
+              waveAnimReadyRef.current = false
+            }
+
+            staggerTimer = setTimeout(() => {
+              if (cancelled) return
+              entranceStaggerReadyRef.current = true
+              if (vrmRef.current?.lookAt) {
+                vrmRef.current.lookAt.autoUpdate = true
+              }
+            }, ENTRANCE.staggerDelayMs)
 
             applyOutfitToScene(vrm.scene, outfitId)
             const metrics = collectModelMetrics(vrm.scene, vrm.humanoid)
             vrmRef.current = vrm
             metricsRef.current = metrics
-            if (entranceRef.current) {
-              applyEntranceWalk(entranceRef.current, 0)
-            }
             entrancePhaseRef.current = 'warmup'
-            entranceProgressRef.current = 0
-            entranceStartAtRef.current = 0
+            waveRuntimeRef.current = createWaveRuntime()
             entranceWarmupFramesRef.current = 0
-            loaderVisibleRef.current = true
+            glCompiledRef.current = false
+            entranceCompleteFiredRef.current = false
             scheduleNextIdleAction(nextActionAtRef)
-            onLoadedRef.current?.()
           },
           undefined,
           (err: unknown) => {
@@ -613,6 +956,7 @@ function VRMScene({
 
     return () => {
       cancelled = true
+      if (staggerTimer) clearTimeout(staggerTimer)
     }
   }, [modelPath, view])
 
@@ -647,28 +991,146 @@ function VRMScene({
     const entrancePhase = entrancePhaseRef.current
     const entranceActive = entrancePhase !== 'done'
 
-    if (entranceRef.current && entranceActive) {
+    if (entranceActive) {
       if (entrancePhase === 'warmup') {
-        applyEntranceWalk(entranceRef.current, 0)
+        if (vrm.humanoid && rest) {
+          applyIdleUpperBody(vrm.humanoid, rest)
+          vrm.humanoid.update()
+        }
+        if (!glCompiledRef.current) {
+          gl.compile(scene, camera)
+          glCompiledRef.current = true
+        }
+        // 错峰 400ms 内暂不跑 spring / lookAt，减轻进页卡顿
+        if (entranceStaggerReadyRef.current) {
+          vrm.update(safeDelta)
+        }
         entranceWarmupFramesRef.current += 1
-        if (entranceWarmupFramesRef.current >= ENTRANCE_WALK.warmupFrames) {
-          entrancePhaseRef.current = 'walk'
-          entranceStartAtRef.current = performance.now()
+        const warmupDone = entranceWarmupFramesRef.current >= ENTRANCE.warmupFrames
+        const waveReadyOrTimedOut =
+          waveAnimReadyRef.current ||
+          entranceWarmupFramesRef.current >= ENTRANCE.warmupFrames + ENTRANCE.waveLoadWaitFrames
+        const staggerReady = entranceStaggerReadyRef.current
+
+        if (warmupDone && staggerReady && waveReadyOrTimedOut) {
+          if (!sceneReadyFiredRef.current) {
+            sceneReadyFiredRef.current = true
+            onSceneReadyRef.current?.()
+            if (onWelcomeVoiceRef.current) {
+              onWelcomeVoiceRef.current()
+            } else {
+              console.info('[Coach]', WELCOME_VOICE_TEXT)
+            }
+          }
+          entrancePhaseRef.current = 'greeting'
+          if (
+            waveAnimReadyRef.current &&
+            waveMixerRef.current &&
+            waveClipRef.current &&
+            restClipRef.current
+          ) {
+            waveUseMixamoRef.current = true
+            waveGreetingPhaseRef.current = 'playing'
+            waveActionRef.current = beginMixamoWaveGreeting(
+              vrm,
+              rest,
+              waveMixerRef.current,
+              waveClipRef.current,
+              restClipRef.current,
+              ENTRANCE.crossFadeSec,
+              ENTRANCE.waveLoopCount,
+              idleActionRef,
+            )
+          } else {
+            waveUseMixamoRef.current = false
+            waveRuntimeRef.current = createWaveRuntime()
+          }
         }
         return
       }
 
-      const progress = getEntranceProgress(entranceStartAtRef.current)
-      entranceProgressRef.current = progress
-      applyEntranceWalk(entranceRef.current, progress)
+      if (entrancePhase === 'greeting' && vrm.humanoid) {
+        let finished = false
 
-      if (progress > 0.08) loaderVisibleRef.current = false
-      if (progress >= 1) {
-        entrancePhaseRef.current = 'done'
-        entranceProgressRef.current = 1
-        resetEntrancePose(entranceRef.current)
+        if (waveUseMixamoRef.current && waveMixerRef.current && waveActionRef.current) {
+          waveMixerRef.current.update(safeDelta)
+          vrm.expressionManager?.setValue('happy', 0.2)
+          applyVisemes(vrm.expressionManager, resetVisemeWeights())
+          vrm.update(safeDelta)
+
+          const action = waveActionRef.current
+          const clip = waveClipRef.current
+          const restClip = restClipRef.current
+          const greetPhase = waveGreetingPhaseRef.current
+
+          if (greetPhase === 'playing') {
+            const loopsDone = action.time > 0 && !action.isRunning()
+
+            if (loopsDone && restClip && waveMixerRef.current) {
+              fadeWaveBackToIdle(
+                waveMixerRef.current,
+                action,
+                restClip,
+                ENTRANCE.crossFadeSec,
+                idleActionRef,
+              )
+              waveGreetingPhaseRef.current = 'fading'
+              waveFadeStartedAtRef.current = performance.now()
+            }
+          } else if (greetPhase === 'fading') {
+            const fadeElapsed = (performance.now() - waveFadeStartedAtRef.current) / 1000
+            if (fadeElapsed >= ENTRANCE.crossFadeSec) {
+              waveMixerRef.current?.stopAllAction()
+              idleActionRef.current = null
+              applyIdleUpperBody(vrm.humanoid, rest)
+              vrm.humanoid.update()
+              waveGreetingPhaseRef.current = 'done'
+              finished = true
+            }
+          }
+        } else {
+          if (
+            waveAnimReadyRef.current &&
+            waveMixerRef.current &&
+            waveClipRef.current &&
+            restClipRef.current
+          ) {
+            waveUseMixamoRef.current = true
+            waveGreetingPhaseRef.current = 'playing'
+            waveActionRef.current = beginMixamoWaveGreeting(
+              vrm,
+              rest,
+              waveMixerRef.current,
+              waveClipRef.current,
+              restClipRef.current,
+              ENTRANCE.crossFadeSec,
+              ENTRANCE.waveLoopCount,
+              idleActionRef,
+            )
+          } else {
+            finished = tickWaveGreeting(
+              waveRuntimeRef.current,
+              safeDelta,
+              vrm.humanoid,
+              rest,
+              vrm.expressionManager,
+            )
+            vrm.update(safeDelta)
+          }
+        }
+
+        const blink = Math.max(0, Math.sin(performance.now() / 1000 * 1.55 + 2.0) * 20 - 19)
+        vrm.expressionManager?.setValue('blink', Math.min(1, blink))
+
+        if (finished) {
+          entrancePhaseRef.current = 'done'
+          if (!entranceCompleteFiredRef.current) {
+            entranceCompleteFiredRef.current = true
+            onEntranceCompleteRef.current?.()
+          }
+        }
+        return
       }
-      return
     }
 
     const t = performance.now() / 1000
@@ -776,7 +1238,11 @@ function VRMScene({
       }
 
       if (lShoulder) lShoulder.rotation.z = rest.lShoulderRotZ + sway * 0.4
-      if (rShoulder) rShoulder.rotation.z = rest.rShoulderRotZ - sway * 0.4
+      if (rShoulder) {
+        rShoulder.quaternion.copy(rest.rShoulder)
+        _tmpQuatA.setFromAxisAngle(_axisZ, -sway * 0.4)
+        rShoulder.quaternion.multiply(_tmpQuatA)
+      }
     }
 
     if (speaking && speechSession) {
@@ -803,7 +1269,6 @@ function VRMScene({
       <directionalLight position={[-2, 2, 1.5]} intensity={0.6} color="#FFD0DC" />
       <pointLight position={[0, 1.6, 2.2]} intensity={0.45} color="#E8DCFF" />
       {showPlatform && <CoachPlatform />}
-      <LoadingOrb view={view} visibleRef={loaderVisibleRef} />
       <group ref={entranceRef}>
         <group ref={groupRef} />
       </group>
@@ -830,27 +1295,12 @@ function CoachPlatform() {
   )
 }
 
-function LoadingOrb({
-  view,
-  visibleRef,
-}: {
-  view: CoachView
-  visibleRef: MutableRefObject<boolean>
-}) {
-  const meshRef = useRef<THREE.Mesh>(null!)
-  const y = view === 'circle' ? 1.15 : view === 'full' ? 0.82 : 0.95
-  useFrame(({ clock }) => {
-    if (!meshRef.current) return
-    meshRef.current.visible = visibleRef.current
-    if (!visibleRef.current) return
-    const pulse = 1 + Math.sin(clock.getElapsedTime() * 1.5) * 0.05
-    meshRef.current.scale.setScalar(pulse)
-  })
+export function DigitalCoachLoading({ label = '加载中...' }: { label?: string }) {
   return (
-    <mesh ref={meshRef} position={[0, y, 0]}>
-      <sphereGeometry args={[0.18, 16, 16]} />
-      <meshStandardMaterial color="#FFB6C1" emissive="#FFB6C1" emissiveIntensity={0.35} transparent opacity={0.4} />
-    </mesh>
+    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3">
+      <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+      <p className="text-sm text-muted-foreground">{label}</p>
+    </div>
   )
 }
 
@@ -863,6 +1313,8 @@ export type DigitalCoachProps = {
   speech?: CoachSpeechCue | null
   onSpeechEnd?: () => void
   onLoaded?: () => void
+  onEntranceComplete?: () => void
+  onWelcomeVoice?: () => void
 }
 
 export function DigitalCoach({
@@ -874,36 +1326,61 @@ export function DigitalCoach({
   speech = null,
   onSpeechEnd,
   onLoaded,
+  onEntranceComplete,
+  onWelcomeVoice,
 }: DigitalCoachProps) {
   const [error, setError] = useState<string | null>(null)
+  const [isSceneReady, setIsSceneReady] = useState(false)
+
+  useEffect(() => {
+    setIsSceneReady(false)
+    setError(null)
+  }, [modelPath])
+
+  const handleSceneReady = () => {
+    setIsSceneReady(true)
+    onLoaded?.()
+  }
 
   return (
     <div className={`relative w-full h-full ${className}`}>
       {error ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center px-4">
           <p className="text-sm text-muted-foreground">{error}</p>
-          <p className="text-xs text-muted-foreground/70">请确认 /models/AvatarSample_A.vrm 可访问</p>
+          <p className="text-xs text-muted-foreground/70">请确认 /models/coach.vrm 可访问</p>
         </div>
       ) : (
-        <Canvas
-          gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-          dpr={[1, 1.5]}
-          frameloop="always"
-          resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
-          camera={{ position: [0, 1.2, 2.4], fov: 30, near: 0.01, far: 50 }}
-          style={{ background: 'transparent', width: '100%', height: '100%', display: 'block' }}
-        >
-          <VRMScene
-            view={view}
-            modelPath={modelPath}
-            showPlatform={showPlatform}
-            outfitId={outfitId}
-            speech={speech}
-            onSpeechEnd={onSpeechEnd}
-            onLoaded={onLoaded}
-            onError={setError}
-          />
-        </Canvas>
+        <>
+          {!isSceneReady && <DigitalCoachLoading />}
+          <div
+            className={`absolute inset-0 transition-opacity duration-500 ease-out ${
+              isSceneReady ? 'opacity-100' : 'pointer-events-none opacity-0'
+            }`}
+            aria-hidden={!isSceneReady}
+          >
+            <Canvas
+              gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+              dpr={[1, 1.5]}
+              frameloop="always"
+              resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
+              camera={{ position: [0, 1.2, 2.4], fov: 30, near: 0.01, far: 50 }}
+              style={{ background: 'transparent', width: '100%', height: '100%', display: 'block' }}
+            >
+              <VRMScene
+                view={view}
+                modelPath={modelPath}
+                showPlatform={showPlatform}
+                outfitId={outfitId}
+                speech={speech}
+                onSpeechEnd={onSpeechEnd}
+                onSceneReady={handleSceneReady}
+                onEntranceComplete={onEntranceComplete}
+                onWelcomeVoice={onWelcomeVoice}
+                onError={setError}
+              />
+            </Canvas>
+          </div>
+        </>
       )}
     </div>
   )

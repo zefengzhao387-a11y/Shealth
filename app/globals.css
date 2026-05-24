@@ -320,9 +320,8 @@
   line-height: 1.55;
 }
 
-/* Horizontal snap scroll */
+/* Horizontal snap scroll — display 由 Tailwind flex/max-md:flex 控制，避免覆盖 md:hidden */
 .snap-scroll-x {
-  display: flex;
   gap: 0.75rem;
   overflow-x: auto;
   scroll-snap-type: x mandatory;

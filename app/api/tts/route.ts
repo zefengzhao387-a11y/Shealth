@@ -5,7 +5,7 @@ const OPENAI_TTS_URL = "https://api.openai.com/v1/audio/speech"
 
 const COACH_TTS_INSTRUCTIONS =
   process.env.OPENAI_TTS_INSTRUCTIONS ||
-  "用温柔、自然、像闺蜜教练一样的语气说普通话，语速适中，有轻微情感起伏，不要播音腔。"
+  "用温柔、自然、像面对面数字人闺蜜一样的语气说普通话，语速适中，有轻微情感起伏，不要播音腔。"
 
 async function synthesizeOpenAI(text: string) {
   const apiKey = process.env.OPENAI_API_KEY

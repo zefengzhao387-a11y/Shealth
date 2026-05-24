@@ -22,7 +22,7 @@ export function Navigation() {
         { label: "社区", href: "#community" },
       ]
     : [
-        { label: "首页", href: "/home" },
+        { label: "灵息", href: "/home" },
         { label: "悦动", href: "/workout" },
         { label: "繁花", href: "/community" },
         { label: "镜心", href: "/profile" },
@@ -236,7 +236,7 @@ export function Navigation() {
                 href="/home"
                 className="min-h-11 px-3 py-1.5 rounded-xl text-xs text-foreground/80 inline-flex items-center justify-center"
               >
-                开始体验
+                和灵息对话
               </Link>
             ) : (
               <motion.button

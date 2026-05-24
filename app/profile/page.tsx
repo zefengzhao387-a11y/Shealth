@@ -614,7 +614,7 @@ function AboutModal({ open, onClose }: { open: boolean; onClose: () => void }) {
       }
     >
       <p className="text-sm text-muted-foreground text-center leading-relaxed mb-6">
-        为每一位女性打造的 AI 闺蜜健身教练
+        以 3D 数字人灵息为核心的女性健康陪伴
         <br />
         让蜕变成为一种温柔的习惯
       </p>

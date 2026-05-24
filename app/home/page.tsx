@@ -2,10 +2,11 @@
 
 import { motion, AnimatePresence } from "framer-motion"
 import dynamic from "next/dynamic"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { BackgroundEffects } from "@/components/shared/effects"
 import { WardrobeButton } from "@/components/coach/wardrobe-button"
 import { CoachSpeechBubble } from "@/components/coach/coach-speech-bubble"
+import { CoachModuleLinks } from "@/components/coach/coach-module-links"
 import type { CoachSpeechCue } from "@/components/3d/digital-coach"
 import { TAP_SPRING } from "@/lib/motion-presets"
 import { DEFAULT_OUTFIT_ID, type CoachOutfitId } from "@/lib/coach-outfit"
@@ -16,8 +17,11 @@ const DigitalCoach = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+      <div className="relative w-full h-full">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+          <p className="text-sm text-muted-foreground">加载中...</p>
+        </div>
       </div>
     ),
   },
@@ -117,8 +121,8 @@ function AIInput({
             type="text"
             value={msg}
             onChange={(e) => setMsg(e.target.value)}
-            placeholder="和 AI 教练说点什么..."
-            aria-label="发消息给 AI 教练"
+            placeholder="和灵息说点什么..."
+            aria-label="发消息给灵息"
             className="flex-1 min-h-11 bg-transparent border-none outline-none text-sm md:text-base text-foreground placeholder:text-muted-foreground"
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
@@ -155,6 +159,18 @@ export default function HomePage() {
   const msgId = useRef(0)
   const speechToken = useRef(0)
   const speechCtrlRef = useRef<Awaited<ReturnType<typeof playCoachSpeech>> | null>(null)
+  const welcomePlayedRef = useRef(false)
+
+  const playWelcomeVoice = useCallback(() => {
+    if (welcomePlayedRef.current) return
+    welcomePlayedRef.current = true
+    const text = "今天锻炼了吗？"
+    const token = ++speechToken.current
+    setSpeechMessageKey(token)
+    setBubbleText(text)
+    setSubtitleProgress(1)
+    setCoachSpeech(null)
+  }, [])
 
   useEffect(() => {
     setMounted(true)
@@ -273,7 +289,7 @@ export default function HomePage() {
       <div className="flex-shrink-0 flex items-center justify-between px-4 md:px-8 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-2">
         <div className="flex items-center gap-2.5">
           <span className="font-brand text-xl md:text-2xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">灵息</span>
-          <span className="text-xs md:text-sm text-muted-foreground hidden sm:inline">AI 数字人教练</span>
+          <span className="text-xs md:text-sm text-muted-foreground hidden sm:inline">3D 数字人 · 面对面陪伴</span>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-green-600">
           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
@@ -281,9 +297,16 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* 主体：最左模块栏 + 居中舞台与对话 */}
+      <div className="flex flex-1 min-h-0 w-full">
+        <aside className="flex-shrink-0 pl-3 pt-2 md:pl-5 md:pt-6 lg:pl-8">
+          <CoachModuleLinks variant="sidebar" />
+        </aside>
+
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center px-3 sm:px-4 md:px-6">
       {/* 中间 3D 舞台 — 居中 */}
       <div
-        className={`relative flex-shrink-0 w-full flex justify-center px-4 transition-[height] duration-500 ${
+        className={`relative flex-shrink-0 w-full flex justify-center transition-[height] duration-500 ${
           hasMessages ? "h-[34vh] md:h-[42vh]" : "h-[min(48vh,480px)] md:h-[min(52vh,560px)]"
         }`}
       >
@@ -296,6 +319,7 @@ export default function HomePage() {
                 outfitId={outfitId}
                 speech={coachSpeech}
                 onSpeechEnd={() => setCoachSpeech(null)}
+                onWelcomeVoice={playWelcomeVoice}
                 className="absolute inset-0 h-full w-full"
               />
 
@@ -312,7 +336,7 @@ export default function HomePage() {
 
               <div className="absolute bottom-1 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full glass-strong px-3 py-1 text-[11px] text-foreground/80 shadow-sm">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
-                AI 教练在线
+                灵息在线
               </div>
             </div>
 
@@ -329,7 +353,7 @@ export default function HomePage() {
       </div>
 
       {/* 下方对话区 */}
-      <div className="flex-1 min-h-0 flex flex-col px-4 md:px-8 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] max-w-2xl mx-auto w-full">
+      <div className="flex w-full max-w-2xl flex-1 min-h-0 flex-col pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
         <AnimatePresence mode="wait">
           {!hasMessages ? (
             <motion.div
@@ -341,7 +365,7 @@ export default function HomePage() {
             >
               <div className="hero-card rounded-2xl px-5 py-4 md:px-6 md:py-5">
                 <p className="text-base md:text-lg text-foreground/90 leading-relaxed">{greeting}</p>
-                <p className="text-sm text-muted-foreground mt-2">我是你的 AI 闺蜜教练，有任何健康、运动、情绪问题都可以问我 ✨</p>
+                <p className="text-sm text-muted-foreground mt-2">我是灵息，你的 3D 数字人教练。运动、健康、情绪，都可以直接跟我聊 ✨</p>
               </div>
 
               <div className="flex flex-wrap gap-2 md:gap-2.5">
@@ -409,6 +433,8 @@ export default function HomePage() {
               ))}
             </div>
           )}
+        </div>
+      </div>
         </div>
       </div>
     </div>
