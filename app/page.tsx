@@ -1,7 +1,7 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Navigation } from "@/components/shared/navigation"
 import { Footer } from "@/components/shared/footer"
 import { Petal, Sparkle, Ripple, BackgroundEffects } from "@/components/shared/effects"
@@ -10,18 +10,16 @@ import { CommunityShowcase } from "@/components/shared/community-showcase"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { TAP_SPRING } from "@/lib/motion-presets"
-import { CoachModuleLinks } from "@/components/coach/coach-module-links"
+import { CoachSpeechBubble } from "@/components/coach/coach-speech-bubble"
+import { DigitalCoachLoading } from "@/components/coach/digital-coach-loading"
 
 const DigitalCoach = dynamic(
   () => import("@/components/3d/digital-coach").then((m) => m.DigitalCoach),
   {
     ssr: false,
     loading: () => (
-      <div className="relative w-full h-full">
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
-          <p className="text-sm text-muted-foreground">加载中...</p>
-        </div>
+      <div className="relative h-full min-h-[200px] w-full bg-transparent">
+        <DigitalCoachLoading />
       </div>
     ),
   },
@@ -32,24 +30,56 @@ function GrainOverlay() {
   return <div className="grain-overlay" aria-hidden />
 }
 
+const LANDING_WELCOME_TEXT =
+  "嗨！先跟我跳一小段吧～每天哪怕动上十分钟，睡眠和代谢都会悄悄变好呢，经期前后也会更舒服哦！"
+
 // ── AI 教练 3D 数字人 ──────────────────────────────────────
 function AICoachArea() {
+  const [bubbleText, setBubbleText] = useState<string | null>(null)
+  const [messageKey, setMessageKey] = useState(0)
+  const [coachReady, setCoachReady] = useState(false)
+  const welcomePlayedRef = useRef(false)
+
+  const playLandingWelcome = useCallback(() => {
+    if (welcomePlayedRef.current) return
+    welcomePlayedRef.current = true
+    setMessageKey((k) => k + 1)
+    setBubbleText(LANDING_WELCOME_TEXT)
+  }, [])
+
   return (
-    <div className="flex items-start gap-2 sm:gap-3">
-      <CoachModuleLinks variant="sidebar" className="hidden sm:flex flex-shrink-0 mt-6" />
-      <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center">
       <motion.div
         className="relative w-[17.5rem] h-[26rem] sm:w-80 sm:h-[30rem] md:w-[22rem] md:h-[34rem]"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.9, delay: 0.5, ease: "easeOut" }}
       >
-        <DigitalCoach view="hero" showPlatform={false} className="absolute inset-0 h-full w-full" />
+        <DigitalCoach
+          view="hero"
+          showPlatform={false}
+          entranceAnim="hipHop"
+          onLoaded={() => setCoachReady(true)}
+          onWelcomeVoice={playLandingWelcome}
+          className="absolute inset-0 h-full w-full"
+        />
+        {coachReady ? (
+          <div className="pointer-events-none absolute inset-0 z-20 overflow-visible">
+            <CoachSpeechBubble
+              text={bubbleText}
+              messageKey={messageKey}
+              autoDismissMs={10000}
+              onAutoDismiss={() => setBubbleText(null)}
+              className="top-[12%] -left-[0.5rem] sm:-left-2"
+            />
+          </div>
+        ) : null}
+        {coachReady ? (
         <motion.div
           className="absolute bottom-0 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full glass-strong text-xs text-foreground flex items-center gap-1.5 whitespace-nowrap z-10"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.2 }}
+          transition={{ delay: 0.2 }}
         >
           <motion.span
             className="w-2 h-2 rounded-full bg-green-400"
@@ -58,8 +88,8 @@ function AICoachArea() {
           />
           灵息在线
         </motion.div>
+        ) : null}
       </motion.div>
-      </div>
     </div>
   )
 }

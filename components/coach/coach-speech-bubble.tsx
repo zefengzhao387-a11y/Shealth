@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 type CoachSpeechBubbleProps = {
@@ -9,6 +9,10 @@ type CoachSpeechBubbleProps = {
   /** 0~1，随语音进度逐字显示；1 或未传则完整显示 */
   progress?: number
   messageKey?: number
+  /** 显示后自动消失（毫秒），默认 10s */
+  autoDismissMs?: number
+  onAutoDismiss?: () => void
+  className?: string
 }
 
 function buildSubtitle(text: string, progress: number) {
@@ -17,14 +21,39 @@ function buildSubtitle(text: string, progress: number) {
   return text.slice(0, target)
 }
 
-/** 数字人对话云 — 右侧专用列，完整字幕随语音打满 */
+const CLOUD_EXIT = {
+  opacity: 0,
+  scale: 1.14,
+  y: -22,
+  x: 8,
+  filter: 'blur(18px)',
+} as const
+
+/** 数字人对话云 — 右侧专用列，完整字幕随语音打满；超时云朵散开消失 */
 export function CoachSpeechBubble({
   text,
   thinking,
   progress = 1,
   messageKey = 0,
+  autoDismissMs = 10000,
+  onAutoDismiss,
+  className = '',
 }: CoachSpeechBubbleProps) {
-  const visible = thinking || !!text
+  const [dismissed, setDismissed] = useState(false)
+
+  useEffect(() => {
+    setDismissed(false)
+  }, [text, messageKey, thinking])
+
+  useEffect(() => {
+    if (thinking || !text || !autoDismissMs || autoDismissMs <= 0) return
+    const timer = window.setTimeout(() => {
+      setDismissed(true)
+    }, autoDismissMs)
+    return () => window.clearTimeout(timer)
+  }, [text, messageKey, thinking, autoDismissMs])
+
+  const visible = (thinking || !!text) && !dismissed
 
   const displayText = useMemo(() => {
     if (!text || thinking) return text
@@ -32,15 +61,23 @@ export function CoachSpeechBubble({
   }, [text, thinking, progress])
 
   return (
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={() => onAutoDismiss?.()}>
       {visible ? (
         <motion.div
           key={thinking ? 'think' : `msg-${messageKey}`}
-          className="absolute top-[28%] left-0 w-full pl-0.5"
-          initial={{ opacity: 0, scale: 0.92, x: 6 }}
-          animate={{ opacity: 1, scale: 1, x: 0 }}
-          exit={{ opacity: 0, scale: 0.96, x: 4 }}
-          transition={{ type: 'spring', damping: 26, stiffness: 340 }}
+          className={`absolute top-[28%] left-0 w-full pl-0.5 ${className}`}
+          initial={{ opacity: 0, scale: 0.92, x: 6, filter: 'blur(4px)' }}
+          animate={{ opacity: 1, scale: 1, x: 0, filter: 'blur(0px)' }}
+          exit={CLOUD_EXIT}
+          transition={{
+            type: 'spring',
+            damping: 26,
+            stiffness: 340,
+            exit: {
+              duration: 0.72,
+              ease: [0.22, 1, 0.36, 1],
+            },
+          }}
         >
           <div className="relative ml-auto w-full max-w-[148px] sm:max-w-[162px] md:max-w-[176px]">
             <svg

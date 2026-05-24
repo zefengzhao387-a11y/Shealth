@@ -3,28 +3,31 @@
 import { motion, AnimatePresence } from "framer-motion"
 import dynamic from "next/dynamic"
 import { useState, useEffect, useRef, useCallback } from "react"
-import { BackgroundEffects } from "@/components/shared/effects"
 import { WardrobeButton } from "@/components/coach/wardrobe-button"
 import { CoachSpeechBubble } from "@/components/coach/coach-speech-bubble"
 import { CoachModuleLinks } from "@/components/coach/coach-module-links"
 import type { CoachSpeechCue } from "@/components/3d/digital-coach"
+import { touchPokeBubbleText, type TouchPokeRegion } from "@/lib/vrm-spring-poke"
 import { TAP_SPRING } from "@/lib/motion-presets"
 import { DEFAULT_OUTFIT_ID, type CoachOutfitId } from "@/lib/coach-outfit"
 import { playCoachSpeech, stopCoachSpeech } from "@/lib/coach-tts"
+import { DigitalCoachLoading } from "@/components/coach/digital-coach-loading"
 
 const DigitalCoach = dynamic(
   () => import("@/components/3d/digital-coach").then((m) => m.DigitalCoach),
   {
     ssr: false,
     loading: () => (
-      <div className="relative w-full h-full">
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
-          <p className="text-sm text-muted-foreground">加载中...</p>
-        </div>
+      <div className="relative h-full min-h-[200px] w-full bg-transparent">
+        <DigitalCoachLoading />
       </div>
     ),
   },
+)
+
+const FallingPetalsScreen = dynamic(
+  () => import("@/components/3d/falling-petals-screen").then((m) => m.FallingPetalsScreen),
+  { ssr: false },
 )
 
 interface UserChatMsg {
@@ -160,6 +163,8 @@ export default function HomePage() {
   const speechToken = useRef(0)
   const speechCtrlRef = useRef<Awaited<ReturnType<typeof playCoachSpeech>> | null>(null)
   const welcomePlayedRef = useRef(false)
+  const gazeEasterEggPlayedRef = useRef(false)
+  const [coachReady, setCoachReady] = useState(false)
 
   const playWelcomeVoice = useCallback(() => {
     if (welcomePlayedRef.current) return
@@ -171,6 +176,30 @@ export default function HomePage() {
     setSubtitleProgress(1)
     setCoachSpeech(null)
   }, [])
+
+  const playGazeEasterEgg = useCallback(() => {
+    if (gazeEasterEggPlayedRef.current || thinking || coachSpeech) return
+    gazeEasterEggPlayedRef.current = true
+    const text = "宝贝，一直看着我，是我脸上有什么东西吗？（笑）"
+    const token = ++speechToken.current
+    setSpeechMessageKey(token)
+    setBubbleText(text)
+    setSubtitleProgress(1)
+    setCoachSpeech(null)
+  }, [thinking, coachSpeech])
+
+  const playTouchPoke = useCallback(
+    (region: TouchPokeRegion) => {
+      if (coachSpeech) return
+      const text = touchPokeBubbleText(region)
+      const token = ++speechToken.current
+      setSpeechMessageKey(token)
+      setBubbleText(text)
+      setSubtitleProgress(1)
+      setCoachSpeech(null)
+    },
+    [coachSpeech],
+  )
 
   useEffect(() => {
     setMounted(true)
@@ -260,31 +289,25 @@ export default function HomePage() {
   }
 
   if (!mounted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-cream via-peach/10 to-lilac/20 flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">加载中...</p>
-      </div>
-    )
+    return <div className="min-h-screen bg-[#FAF6F0]" />
   }
 
   const hasMessages = userMessages.length > 0
 
   return (
-    <div className="min-h-screen md:h-screen overflow-hidden bg-background flex flex-col relative">
-      <div className="fixed inset-0 pointer-events-none -z-10">
-        <BackgroundEffects density="light" />
-        <motion.div
-          className="absolute top-0 left-1/4 w-80 h-80 rounded-full bg-primary/6 blur-3xl"
-          animate={{ x: [0, 20, 0], y: [0, 10, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute bottom-32 right-0 w-64 h-64 rounded-full bg-secondary/6 blur-3xl"
-          animate={{ x: [0, -15, 0], y: [0, -20, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        />
+    <div className="relative min-h-screen md:h-screen w-full overflow-hidden bg-[#FAF6F0] flex flex-col">
+      <div
+        className="fixed inset-0 z-0 pointer-events-none blur-[120px] opacity-40"
+        aria-hidden
+      >
+        <div className="absolute -left-[10%] top-[6%] h-[min(92vw,640px)] w-[min(92vw,640px)] rounded-full bg-pink-200/60 animate-fluid-glow" />
+        <div className="absolute right-[-8%] top-[32%] h-[min(88vw,600px)] w-[min(88vw,600px)] rounded-full bg-amber-100/70 animate-fluid-glow-alt" />
+        <div className="absolute left-[22%] bottom-[-10%] h-[min(84vw,560px)] w-[min(84vw,560px)] rounded-full bg-sky-100/50 animate-fluid-glow-soft" />
       </div>
 
+      <FallingPetalsScreen />
+
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
       {/* 顶栏 */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 md:px-8 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-2">
         <div className="flex items-center gap-2.5">
@@ -318,9 +341,12 @@ export default function HomePage() {
                 view="full"
                 outfitId={outfitId}
                 speech={coachSpeech}
+                onLoaded={() => setCoachReady(true)}
                 onSpeechEnd={() => setCoachSpeech(null)}
                 onWelcomeVoice={playWelcomeVoice}
-                className="absolute inset-0 h-full w-full"
+                onGazeEasterEgg={playGazeEasterEgg}
+                onTouchPoke={playTouchPoke}
+                className="absolute inset-0 z-10 h-full w-full"
               />
 
               {/* 头部锚点 — 尖角对准此处（不可见） */}
@@ -331,13 +357,17 @@ export default function HomePage() {
               />
 
               <div className="absolute top-2 right-0 z-20 md:top-3">
-                <WardrobeButton value={outfitId} onChange={setOutfitId} />
+                {coachReady ? (
+                  <WardrobeButton value={outfitId} onChange={setOutfitId} />
+                ) : null}
               </div>
 
-              <div className="absolute bottom-1 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full glass-strong px-3 py-1 text-[11px] text-foreground/80 shadow-sm">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
-                灵息在线
-              </div>
+              {coachReady ? (
+                <div className="absolute bottom-1 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full glass-strong px-3 py-1 text-[11px] text-foreground/80 shadow-sm">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
+                  灵息在线
+                </div>
+              ) : null}
             </div>
 
             <div className="relative h-full overflow-visible pointer-events-none">
@@ -346,6 +376,8 @@ export default function HomePage() {
                 thinking={thinking}
                 progress={subtitleProgress}
                 messageKey={speechMessageKey}
+                autoDismissMs={10000}
+                onAutoDismiss={() => setBubbleText(null)}
               />
             </div>
           </div>
@@ -436,6 +468,7 @@ export default function HomePage() {
         </div>
       </div>
         </div>
+      </div>
       </div>
     </div>
   )

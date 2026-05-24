@@ -428,3 +428,52 @@
   height: 1px;
   background: linear-gradient(90deg, transparent, oklch(0.85 0.04 300 / 0.5), transparent);
 }
+
+/* 灵息舞台 — 柔和流体渐变色块（HTML/CSS 层，不占用 Three.js） */
+@keyframes fluid-glow {
+  0%,
+  100% {
+    transform: translate(10%, 10%) scale(1);
+  }
+  33% {
+    transform: translate(-15%, 20%) scale(1.2);
+  }
+  66% {
+    transform: translate(20%, -10%) scale(0.9);
+  }
+}
+
+@keyframes fluid-glow-alt {
+  0%,
+  100% {
+    transform: translate(-8%, 15%) scale(1.05);
+  }
+  33% {
+    transform: translate(22%, -12%) scale(0.88);
+  }
+  66% {
+    transform: translate(-18%, -8%) scale(1.18);
+  }
+}
+
+@keyframes fluid-glow-soft {
+  0%,
+  100% {
+    transform: translate(5%, -12%) scale(1.1);
+  }
+  50% {
+    transform: translate(-14%, 18%) scale(0.92);
+  }
+}
+
+.animate-fluid-glow {
+  animation: fluid-glow 28s ease-in-out infinite;
+}
+
+.animate-fluid-glow-alt {
+  animation: fluid-glow-alt 32s ease-in-out infinite;
+}
+
+.animate-fluid-glow-soft {
+  animation: fluid-glow-soft 25s ease-in-out infinite;
+}

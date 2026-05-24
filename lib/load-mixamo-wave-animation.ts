@@ -39,7 +39,11 @@ function pickSourceClip(clips: THREE.AnimationClip[]): THREE.AnimationClip | nul
   )
 }
 
-async function loadFbxMixamo(url: string, vrm: VRM): Promise<THREE.AnimationClip | null> {
+async function loadFbxMixamo(
+  url: string,
+  vrm: VRM,
+  clipName: string,
+): Promise<THREE.AnimationClip | null> {
   const { FBXLoader } = await import('three/examples/jsm/loaders/FBXLoader.js')
   const loader = new FBXLoader(assetLoadingManager)
   const fbx = await loader.loadAsync(url)
@@ -51,10 +55,14 @@ async function loadFbxMixamo(url: string, vrm: VRM): Promise<THREE.AnimationClip
     return null
   }
 
-  return retargetMixamoClipToVRM(sourceClip, vrm, fbx, 'mixamoWave')
+  return retargetMixamoClipToVRM(sourceClip, vrm, fbx, clipName)
 }
 
-async function loadGlbMixamo(url: string, vrm: VRM): Promise<THREE.AnimationClip | null> {
+async function loadGlbMixamo(
+  url: string,
+  vrm: VRM,
+  clipName: string,
+): Promise<THREE.AnimationClip | null> {
   const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js')
   const loader = new GLTFLoader(assetLoadingManager)
   const gltf = await loader.loadAsync(url)
@@ -65,27 +73,29 @@ async function loadGlbMixamo(url: string, vrm: VRM): Promise<THREE.AnimationClip
     return null
   }
 
-  return retargetMixamoClipToVRM(sourceClip, vrm, gltf.scene, 'mixamoWave')
+  return retargetMixamoClipToVRM(sourceClip, vrm, gltf.scene, clipName)
 }
 
 /**
  * 加载 Mixamo 动画（.fbx / .glb），在前端重定向到 VRM normalized 骨骼后再播放。
  */
-export async function loadMixamoWaveAnimation(
+export async function loadMixamoAnimation(
   url: string,
   vrm: VRM,
+  clipName = 'mixamoAnim',
 ): Promise<THREE.AnimationClip | null> {
   const ext = url.split('?')[0]?.split('.').pop()?.toLowerCase()
 
   try {
     const clip =
       ext === 'glb' || ext === 'gltf'
-        ? await loadGlbMixamo(url, vrm)
-        : await loadFbxMixamo(url, vrm)
+        ? await loadGlbMixamo(url, vrm, clipName)
+        : await loadFbxMixamo(url, vrm, clipName)
 
     if (clip) {
       console.info(
         '[VRM] Mixamo 重定向 clip',
+        clipName,
         clip.tracks.length,
         'tracks,',
         clip.duration.toFixed(2),
@@ -94,7 +104,15 @@ export async function loadMixamoWaveAnimation(
     }
     return clip
   } catch (error) {
-    console.warn('[VRM] Mixamo 动画加载失败', error)
+    console.warn('[VRM] Mixamo 动画加载失败', url, error)
     return null
   }
+}
+
+/** @deprecated 使用 loadMixamoAnimation */
+export async function loadMixamoWaveAnimation(
+  url: string,
+  vrm: VRM,
+): Promise<THREE.AnimationClip | null> {
+  return loadMixamoAnimation(url, vrm, 'mixamoWave')
 }
