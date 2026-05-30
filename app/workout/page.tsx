@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef } from "react"
 import { Navigation } from "@/components/shared/navigation"
 import { Petal, BackgroundEffects } from "@/components/shared/effects"
+import { AppPageHeader } from "@/components/shared/app-page-header"
 import { useAuth } from "@/contexts/auth-context"
 import { usePoints } from "@/contexts/points-context"
 import { TAP_SPRING } from "@/lib/motion-presets"
@@ -589,22 +590,23 @@ export default function WorkoutPage() {
 
   useEffect(() => { setMounted(true) }, [])
 
-  if (!mounted) return <div className="min-h-screen bg-gradient-to-br from-cream via-peach/10 to-lilac/20" />
+  if (!mounted) return <div className="min-h-screen app-shell" />
 
   const filtered = activeCategory === "all" ? courses : courses.filter(c => c.category === activeCategory)
 
   return (
     <main className="relative min-h-screen pb-[calc(env(safe-area-inset-bottom,0px)+7.5rem)] md:pb-32">
-      <div className="fixed inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 -z-10" />
+      <div className="app-shell__ambient fixed inset-0 -z-10 pointer-events-none" aria-hidden />
       <BackgroundEffects density="light" />
       <Navigation />
 
       <div className="relative z-10 pt-24 md:pt-20 mobile-shell">
         <div className="max-w-2xl mx-auto">
-          <motion.div className="mb-5 md:mb-6" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="fluid-title font-medium text-foreground tracking-tight">悦动专区</h1>
-            <p className="text-sm text-muted-foreground mt-1">选择一个课程，开始今天的练习</p>
-          </motion.div>
+          <AppPageHeader
+            kicker="Workout"
+            title="悦动专区"
+            subtitle="选择一个课程，开始今天的练习"
+          />
 
           <TodayRecommend onStart={setSelectedCourse} />
 

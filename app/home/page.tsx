@@ -5,10 +5,13 @@ import dynamic from "next/dynamic"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { WardrobeButton } from "@/components/coach/wardrobe-button"
 import { CoachSpeechBubble } from "@/components/coach/coach-speech-bubble"
+import { HomeEmptyPrompt, QuickQuestionRow } from "@/components/coach/quick-question-chips"
 import { CoachModuleLinks } from "@/components/coach/coach-module-links"
 import type { CoachSpeechCue } from "@/components/3d/digital-coach"
 import { touchPokeBubbleText, type TouchPokeRegion } from "@/lib/vrm-spring-poke"
 import { TAP_SPRING } from "@/lib/motion-presets"
+import ShinyText from '@/components/ShinyText/ShinyText'
+import BlurText from '@/components/BlurText/BlurText'
 import { DEFAULT_OUTFIT_ID, type CoachOutfitId } from "@/lib/coach-outfit"
 import { playCoachSpeech, stopCoachSpeech } from "@/lib/coach-tts"
 import { DigitalCoachLoading } from "@/components/coach/digital-coach-loading"
@@ -289,21 +292,14 @@ export default function HomePage() {
   }
 
   if (!mounted) {
-    return <div className="min-h-screen bg-[#FAF6F0]" />
+    return <div className="min-h-screen app-shell" />
   }
 
   const hasMessages = userMessages.length > 0
 
   return (
-    <div className="relative min-h-screen md:h-screen w-full overflow-hidden bg-[#FAF6F0] flex flex-col">
-      <div
-        className="fixed inset-0 z-0 pointer-events-none blur-[120px] opacity-40"
-        aria-hidden
-      >
-        <div className="absolute -left-[10%] top-[6%] h-[min(92vw,640px)] w-[min(92vw,640px)] rounded-full bg-pink-200/60 animate-fluid-glow" />
-        <div className="absolute right-[-8%] top-[32%] h-[min(88vw,600px)] w-[min(88vw,600px)] rounded-full bg-amber-100/70 animate-fluid-glow-alt" />
-        <div className="absolute left-[22%] bottom-[-10%] h-[min(84vw,560px)] w-[min(84vw,560px)] rounded-full bg-sky-100/50 animate-fluid-glow-soft" />
-      </div>
+    <div className="app-shell relative min-h-screen md:h-screen w-full overflow-hidden flex flex-col">
+      <div className="app-shell__ambient fixed inset-0 z-0 pointer-events-none" aria-hidden />
 
       <FallingPetalsScreen />
 
@@ -311,11 +307,22 @@ export default function HomePage() {
       {/* 顶栏 */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 md:px-8 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-2">
         <div className="flex items-center gap-2.5">
-          <span className="font-brand text-xl md:text-2xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">灵息</span>
-          <span className="text-xs md:text-sm text-muted-foreground hidden sm:inline">3D 数字人 · 面对面陪伴</span>
+          <ShinyText
+            text="灵息"
+            speed={2.6}
+            color="oklch(0.55 0.1 350)"
+            shineColor="oklch(0.72 0.14 350)"
+            className="font-brand text-xl md:text-2xl"
+          />
+          <BlurText
+            text="3D 数字人 · 面对面陪伴"
+            className="hidden sm:!inline-flex text-xs text-muted-foreground app-subtitle-readable"
+            delay={70}
+            animateBy="words"
+          />
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-green-600">
-          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+        <div className="flex items-center gap-1.5 text-xs text-emerald-600/90">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           在线
         </div>
       </div>
@@ -363,8 +370,8 @@ export default function HomePage() {
               </div>
 
               {coachReady ? (
-                <div className="absolute bottom-1 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full glass-strong px-3 py-1 text-[11px] text-foreground/80 shadow-sm">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
+                <div className="absolute bottom-1 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full app-chip px-3 py-1 text-[11px] text-foreground/80">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
                   灵息在线
                 </div>
               ) : null}
@@ -390,31 +397,17 @@ export default function HomePage() {
           {!hasMessages ? (
             <motion.div
               key="empty"
-              className="flex-1 flex flex-col justify-start gap-4 py-2 md:py-4 overflow-y-auto"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-1 flex-col"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0, y: -8 }}
             >
-              <div className="hero-card rounded-2xl px-5 py-4 md:px-6 md:py-5">
-                <p className="text-base md:text-lg text-foreground/90 leading-relaxed">{greeting}</p>
-                <p className="text-sm text-muted-foreground mt-2">我是灵息，你的 3D 数字人教练。运动、健康、情绪，都可以直接跟我聊 ✨</p>
-              </div>
-
-              <div className="flex flex-wrap gap-2 md:gap-2.5">
-                {QUICK_QUESTIONS.map((q, i) => (
-                  <motion.button
-                    key={q}
-                    className="px-4 py-2.5 rounded-full glass border border-white/50 text-sm text-foreground/75 hover:text-foreground hover:bg-white/50 transition-colors active:scale-95"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 + i * 0.06 }}
-                    whileTap={TAP_SPRING}
-                    onClick={() => handleSend(q)}
-                  >
-                    {q}
-                  </motion.button>
-                ))}
-              </div>
+              <HomeEmptyPrompt
+                greeting={greeting}
+                subtitle="我是灵息，你的 3D 数字人教练。运动、健康、情绪，都可以直接跟我聊 ✨"
+                questions={QUICK_QUESTIONS}
+                onSelect={handleSend}
+              />
             </motion.div>
           ) : (
             <motion.div
@@ -452,18 +445,7 @@ export default function HomePage() {
         <div className="flex-shrink-0 pt-3">
           <AIInput onSend={handleSend} thinking={thinking} />
           {hasMessages && (
-            <div className="flex gap-2 mt-2.5 overflow-x-auto scrollbar-hide">
-              {QUICK_QUESTIONS.map((q) => (
-                <motion.button
-                  key={q}
-                  className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full glass border border-white/40 text-muted-foreground whitespace-nowrap hover:text-foreground transition-colors"
-                  whileTap={TAP_SPRING}
-                  onClick={() => handleSend(q)}
-                >
-                  {q}
-                </motion.button>
-              ))}
-            </div>
+            <QuickQuestionRow questions={QUICK_QUESTIONS} onSelect={handleSend} />
           )}
         </div>
       </div>

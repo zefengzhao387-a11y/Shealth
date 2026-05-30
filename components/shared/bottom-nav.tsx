@@ -89,7 +89,7 @@ export function BottomNav({ forceHide = false }: { forceHide?: boolean }) {
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
     >
-      <div className="mx-3 mb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] rounded-3xl px-2 py-2.5 bg-card/94 backdrop-blur-xl border border-border/60 shadow-[0_12px_34px_rgba(54,35,67,0.14)]">
+      <div className="mx-3 mb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] rounded-3xl px-2 py-2.5 bg-card/94 backdrop-blur-xl border border-border/60 shadow-[0_12px_34px_oklch(0.62_0.14_350_/_0.12)]">
         <div className="flex items-center justify-around">
           {navItems.map((item) => {
             const isActive = pathname === item.href

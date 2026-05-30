@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { BackgroundEffects } from "@/components/shared/effects"
+import { AppPageHeader } from "@/components/shared/app-page-header"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
 import type { Message } from "@/lib/supabase"
@@ -154,12 +155,12 @@ export default function MessagesPage() {
     else router.push('/home')
   }
 
-  if (!mounted) return <div className="min-h-screen bg-gradient-to-br from-cream via-peach/10 to-lilac/20" />
+  if (!mounted) return <div className="min-h-screen app-shell" />
 
   if (!user) {
     return (
       <main className="relative min-h-screen pb-32">
-        <div className="fixed inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 -z-10" />
+        <div className="app-shell__ambient fixed inset-0 -z-10 pointer-events-none" aria-hidden />
         <div className="flex flex-col items-center justify-center min-h-screen px-8 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="text-6xl mb-4">💌</div>
@@ -179,7 +180,7 @@ export default function MessagesPage() {
 
   return (
     <main className="relative min-h-screen pb-[calc(env(safe-area-inset-bottom,0px)+7rem)] md:pb-20">
-      <div className="fixed inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 -z-10" />
+      <div className="app-shell__ambient fixed inset-0 -z-10 pointer-events-none" aria-hidden />
       <BackgroundEffects density="light" />
 
       <div className="relative z-10 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] h-screen flex flex-col">
@@ -272,20 +273,22 @@ export default function MessagesPage() {
               transition={{ duration: 0.25, ease: "easeOut" }}
             >
               <div className="mobile-shell pb-4">
-                <div className="mb-5 pt-2">
-                  <div className="flex items-center gap-3 mb-2">
-                    <motion.button
-                      onClick={goBack}
-                      className="w-9 h-9 rounded-full glass flex items-center justify-center"
-                      whileTap={{ scale: 0.9 }}
-                    >
-                      <svg className="w-5 h-5 text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M15 18l-6-6 6-6" />
-                      </svg>
-                    </motion.button>
-                    <h1 className="text-2xl font-medium text-foreground">私信箱</h1>
-                  </div>
-                  <p className="text-sm text-muted-foreground">与花间好友互相鼓励</p>
+                <div className="mb-5 flex items-start gap-3 pt-2">
+                  <motion.button
+                    onClick={goBack}
+                    className="mt-1 w-9 h-9 rounded-full glass flex items-center justify-center flex-shrink-0"
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <svg className="w-5 h-5 text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                  </motion.button>
+                  <AppPageHeader
+                    kicker="Messages"
+                    title="私信箱"
+                    subtitle="与花间好友互相鼓励"
+                    className="mb-0 flex-1"
+                  />
                 </div>
 
                 {loading ? (

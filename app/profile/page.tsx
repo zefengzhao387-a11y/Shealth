@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Navigation } from "@/components/shared/navigation"
+import { AppPageHeader } from "@/components/shared/app-page-header"
 import { supabase } from "@/lib/supabase"
 import type { Dimension } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
@@ -671,13 +672,13 @@ export default function ProfilePage() {
     setTimeout(() => setCheckInSuccess(false), 3000)
   }
 
-  if (!mounted) return <div className="min-h-screen bg-gradient-to-br from-cream via-peach/10 to-lilac/20" />
+  if (!mounted) return <div className="min-h-screen app-shell" />
 
   // 未登录状态
   if (!user) {
     return (
       <main className="relative min-h-screen pb-32">
-        <div className="fixed inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 -z-10" />
+        <div className="app-shell__ambient fixed inset-0 -z-10 pointer-events-none" aria-hidden />
         <Navigation />
         <div className="flex flex-col items-center justify-center min-h-screen px-8 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -707,13 +708,14 @@ export default function ProfilePage() {
 
   return (
     <main className="relative min-h-screen pb-[calc(env(safe-area-inset-bottom,0px)+7.5rem)] md:pb-32">
-      <div className="fixed inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 -z-10" />
+      <div className="app-shell__ambient fixed inset-0 -z-10 pointer-events-none" aria-hidden />
       <BackgroundEffects density="light" />
 
       <Navigation />
 
       <div className="relative z-10 pt-24 md:pt-16 mobile-shell">
         <div className="max-w-2xl mx-auto">
+          <AppPageHeader kicker="Profile" title="镜心" subtitle="记录变化，看见自己的成长" className="px-1" />
 
           {/* 个人头部 */}
           <motion.div className="mb-5" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>

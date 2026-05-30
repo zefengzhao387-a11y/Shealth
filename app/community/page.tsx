@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { getDisplayName } from "@/lib/display-name"
 import { TAP_SPRING } from "@/lib/motion-presets"
 import { ResponsiveBottomSheet } from "@/components/shared/responsive-bottom-sheet"
+import { AppPageHeader } from "@/components/shared/app-page-header"
 
 const TOPICS = [
   { id: "1", name: "21天戒糖", count: "2.3k", gradient: "from-peach/50 to-primary/40", emoji: "🍭" },
@@ -561,7 +562,7 @@ export default function CommunityPage() {
   useEffect(() => { setMounted(true) }, [])
   useEffect(() => { if (mounted) fetchPosts() }, [mounted, user])
 
-  if (!mounted) return <div className="min-h-screen bg-gradient-to-br from-cream via-peach/10 to-lilac/20" />
+  if (!mounted) return <div className="min-h-screen app-shell" />
 
   const handleCreatePost = (tag?: string) => {
     if (!user) { openAuthModal(); return }
@@ -571,28 +572,28 @@ export default function CommunityPage() {
 
   return (
     <main className="relative min-h-screen pb-[calc(env(safe-area-inset-bottom,0px)+7.5rem)] md:pb-32">
-      <div className="fixed inset-0 bg-gradient-to-br from-cream via-peach/10 to-lilac/20 -z-10" />
+      <div className="app-shell__ambient fixed inset-0 -z-10 pointer-events-none" aria-hidden />
       <BackgroundEffects density="light" />
       <Navigation />
 
       <div className="relative z-10 pt-24 md:pt-16 mobile-shell">
         <div className="max-w-2xl mx-auto">
-          <motion.div className="mb-5 px-1" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="flex items-end justify-between">
-              <div>
-                <h1 className="fluid-title font-semibold text-foreground tracking-tight">繁花社区</h1>
-                <p className="text-[13px] text-muted-foreground mt-0.5">分享你的蜕变，与闺蜜一起成长</p>
-              </div>
-              <span className="chip bg-primary/12 text-primary mb-0.5">
+          <div className="mb-5 flex items-end justify-between px-1">
+            <AppPageHeader
+              kicker="Community"
+              title="繁花社区"
+              subtitle="分享你的蜕变，与闺蜜一起成长"
+              className="mb-0"
+            />
+            <span className="chip bg-primary/12 text-primary mb-0.5">
                 <motion.span
                   animate={{ scale: [1, 1.3, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
                   className="inline-block w-1.5 h-1.5 rounded-full bg-primary mr-0.5"
                 />
                 实时更新
-              </span>
-            </div>
-          </motion.div>
+            </span>
+          </div>
 
           {/* 话题频道 — 横滚卡片 */}
           <motion.div className="mb-4 -mx-1 md:mx-0 px-1 md:px-0" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
