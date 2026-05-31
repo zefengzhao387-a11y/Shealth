@@ -17,6 +17,7 @@ export function LandingDitherBackground() {
         waveAmplitude={0.3}
         waveFrequency={3}
         waveSpeed={0.05}
+        lowPower
       />
       <div className="landing-dither-bg__veil" />
     </div>
