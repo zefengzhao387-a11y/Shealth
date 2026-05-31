@@ -20,8 +20,8 @@ export function AppPageHeader({ title, subtitle, kicker, className = '' }: AppPa
           <ShinyText
             text={kicker}
             speed={2.8}
-            color="oklch(0.55 0.06 290)"
-            shineColor="oklch(0.72 0.12 350)"
+            color="oklch(0.56 0.065 315)"
+            shineColor="oklch(0.74 0.11 var(--h-rose-bright))"
             className="text-[11px] uppercase tracking-[0.28em]"
           />
         </p>

@@ -691,7 +691,7 @@ export default function ProfilePage() {
   // 未登录状态
   if (!user) {
     return (
-      <main className="relative min-h-screen pb-32">
+      <main className="app-shell relative min-h-screen pb-32">
         <div className="app-shell__ambient fixed inset-0 -z-10 pointer-events-none" aria-hidden />
         <Navigation />
         <div className="flex flex-col items-center justify-center min-h-screen px-8 text-center">
@@ -721,7 +721,7 @@ export default function ProfilePage() {
   const latestDim = dimensions[0]
 
   return (
-    <main className="relative min-h-screen pb-[calc(env(safe-area-inset-bottom,0px)+7.5rem)] md:pb-32">
+    <main className="app-shell relative min-h-screen pb-[calc(env(safe-area-inset-bottom,0px)+7.5rem)] md:pb-32">
       <div className="app-shell__ambient fixed inset-0 -z-10 pointer-events-none" aria-hidden />
       <BackgroundEffects density="light" />
 

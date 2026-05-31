@@ -9,6 +9,7 @@ import BlurText from '@/components/BlurText/BlurText'
 import DecryptedText from '@/components/DecryptedText/DecryptedText'
 import ShinyText from '@/components/ShinyText/ShinyText'
 import Shuffle from '@/components/Shuffle/Shuffle'
+import StarBorder from '@/components/StarBorder/StarBorder'
 import { LandingHeroCarousel } from '@/components/landing/landing-hero-carousel'
 
 gsap.registerPlugin(useGSAP)
@@ -62,8 +63,8 @@ export function LandingHero() {
             <ShinyText
               text="Shealth · 3D Coach"
               speed={3}
-              color="oklch(0.84 0.028 340)"
-              shineColor="oklch(0.95 0.02 350)"
+              color="oklch(0.84 0.032 var(--h-rose-soft))"
+              shineColor="oklch(0.95 0.025 var(--h-rose-bright))"
             />
           </p>
 
@@ -102,7 +103,7 @@ export function LandingHero() {
             cursorCharacter="|"
             cursorBlinkDuration={0.45}
             className="landing-hero-type landing-readable mt-6 min-h-[2.5rem] text-xl md:mt-8 md:min-h-[3rem] md:text-3xl md:leading-snug"
-            textColors={['#faf0f4', '#f0d4e0', '#e8b8cc']}
+            textColors={['#fdf2f6', '#f5d4e4', '#efbdd4']}
           />
 
           <BlurText
@@ -113,16 +114,23 @@ export function LandingHero() {
           />
 
           <div data-hero-item className="mt-10">
-            <Link href="/home" className="landing-cta landing-cta--glow">
-              <DecryptedText
-                text="开始体验"
-                animateOn="view"
-                speed={35}
-                maxIterations={8}
-                sequential
-                className="text-[var(--landing-cta-fg)]"
-                parentClassName="inline-block"
-              />
+            <Link href="/home" className="star-border-link">
+              <StarBorder
+                as="span"
+                className="star-border--landing"
+                color="#f0abfc"
+                speed="5s"
+              >
+                <DecryptedText
+                  text="开始体验"
+                  animateOn="view"
+                  speed={35}
+                  maxIterations={8}
+                  sequential
+                  className="text-white"
+                  parentClassName="inline-block"
+                />
+              </StarBorder>
             </Link>
           </div>
         </div>

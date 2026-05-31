@@ -43,7 +43,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="zh-CN" className="bg-background" style={{ colorScheme: 'light' }}>
+    <html lang="zh-CN" className="bg-background" style={{ colorScheme: 'dark' }}>
       <body className="font-sans antialiased min-h-screen bg-background text-foreground">
         <Providers>
           {children}

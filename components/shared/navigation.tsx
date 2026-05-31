@@ -100,9 +100,9 @@ export function Navigation() {
           items={[...APP_NAV_ITEMS]}
           activeHref={pathname}
           ease="power2.easeOut"
-          baseColor="#ffffff"
-          pillColor="#2a1824"
-          pillTextColor="#ffffff"
+          baseColor="#5a4456"
+          pillColor="#886676"
+          pillTextColor="#fff5f8"
           hoveredPillTextColor="#ffffff"
           initialLoadAnimation
           className="app-pill-nav"
