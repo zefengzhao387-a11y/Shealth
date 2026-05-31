@@ -194,10 +194,10 @@ export function CoachSpeechBubble({
                   className="h-2 w-2 rounded-full bg-primary/60"
                 />
               ))}
-              <span className="ml-0.5 text-[11px] text-muted-foreground">让我想想…</span>
+              <span className="ml-0.5 text-[11px] text-primary-foreground/60">让我想想…</span>
             </div>
           ) : (
-            <p className="whitespace-pre-wrap text-[12px] leading-[1.65] text-foreground/90 sm:text-[13px]">
+            <p className="whitespace-pre-wrap text-[12px] leading-[1.65] text-primary-foreground sm:text-[13px]">
               {displayText}
               {text && progress < 0.999 && (
                 <span
