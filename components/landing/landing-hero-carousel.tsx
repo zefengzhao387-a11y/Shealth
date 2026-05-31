@@ -1,49 +1,60 @@
 'use client'
 
 import { MessageCircle, Sparkles, Users, Dumbbell } from 'lucide-react'
-import Carousel from '@/components/Carousel/Carousel'
+import CardSwap, { Card } from '@/components/CardSwap/CardSwap'
 
-const LANDING_CAROUSEL_ITEMS = [
+const LANDING_SWAP_ITEMS = [
   {
     id: 1,
-    title: '面对面聊',
-    description: '运动、睡眠、经期——像和朋友一样，随时问灵息。',
-    icon: <MessageCircle className="carousel-icon" strokeWidth={2} />,
+    title: '对语灵息',
+    description: '运动、睡眠、经期的私语，轻轻诉与灵息；一问一答，如与知己对坐，温暖如灯。',
+    icon: MessageCircle,
   },
   {
     id: 2,
-    title: '跟着练',
-    description: '短时动作与恢复建议，动十分钟，也算数。',
-    icon: <Dumbbell className="carousel-icon" strokeWidth={2} />,
+    title: '动起成诗',
+    description: '短时动作与恢复同行；哪怕只动十分钟，也是写给身体的一行字。',
+    icon: Dumbbell,
   },
   {
     id: 3,
-    title: '有人陪',
-    description: '繁花社区里，与同路人互相鼓励、一起成长。',
-    icon: <Users className="carousel-icon" strokeWidth={2} />,
+    title: '繁花同路',
+    description: '社区里同路人的鼓励如春风；彼此见证生长，每一步都有了回响。',
+    icon: Users,
   },
   {
     id: 4,
-    title: '看见变化',
-    description: '镜心记录身体维度，趋势与成就一目了然。',
-    icon: <Sparkles className="carousel-icon" strokeWidth={2} />,
+    title: '镜照生长',
+    description: '身形的起伏，悄悄落入镜心；曲线如河，星点如成就，皆与你有关。',
+    icon: Sparkles,
   },
-]
+] as const
 
 export function LandingHeroCarousel() {
   return (
-    <div className="landing-hero-carousel pointer-events-auto">
-      <Carousel
-        items={LANDING_CAROUSEL_ITEMS}
-        baseWidth={330}
-        autoplay
-        autoplayDelay={2000}
+    <div className="landing-hero-card-swap pointer-events-auto">
+      <CardSwap
+        width={330}
+        height={196}
+        cardDistance={60}
+        verticalDistance={70}
+        delay={5000}
         pauseOnHover={false}
-        loop={true}
-        round={false}
-        hideIndicators
-        className="landing-carousel"
-      />
+        className="landing-card-swap"
+      >
+        {LANDING_SWAP_ITEMS.map((item) => {
+          const Icon = item.icon
+          return (
+            <Card key={item.id} customClass="landing-swap-card">
+              <div className="landing-swap-card__icon-wrap">
+                <Icon className="landing-swap-card__icon" strokeWidth={2} />
+              </div>
+              <h3 className="landing-swap-card__title">{item.title}</h3>
+              <p className="landing-swap-card__description">{item.description}</p>
+            </Card>
+          )
+        })}
+      </CardSwap>
     </div>
   )
 }

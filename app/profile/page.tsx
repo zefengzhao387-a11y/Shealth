@@ -355,10 +355,17 @@ function FriendsModal({ onClose }: { onClose: () => void }) {
     if (data && data.length > 0) {
       const otherIds = data.map((f: any) => f.requester_id === user.id ? f.addressee_id : f.requester_id)
       const { data: profs } = await supabase.from('profiles').select('id, username, displayname, display_name').in('id', otherIds)
-      const map = new Map((profs ?? []).map((p: any) => [p.id, getDisplayName(p)]))
+      const profMap = new Map((profs ?? []).map((p: any) => [p.id, p]))
       setFriends(data.map((f: any) => {
         const otherId = f.requester_id === user.id ? f.addressee_id : f.requester_id
-        return { id: otherId, username: map.get(otherId) ?? null, friendship_id: f.id }
+        const prof = profMap.get(otherId)
+        return {
+          id: otherId,
+          username: prof?.username ?? null,
+          displayname: prof?.displayname ?? null,
+          display_name: prof?.display_name ?? null,
+          friendship_id: f.id,
+        }
       }))
     } else {
       setFriends([])
@@ -375,10 +382,17 @@ function FriendsModal({ onClose }: { onClose: () => void }) {
     if (data && data.length > 0) {
       const { data: profs } = await supabase
         .from('profiles').select('id, username, displayname, display_name').in('id', data.map((f: any) => f.requester_id))
-      const map = new Map((profs ?? []).map((p: any) => [p.id, getDisplayName(p)]))
-      setPendingIn(data.map((f: any) => ({
-        id: f.requester_id, username: map.get(f.requester_id) ?? null, friendship_id: f.id,
-      })))
+      const profMap = new Map((profs ?? []).map((p: any) => [p.id, p]))
+      setPendingIn(data.map((f: any) => {
+        const prof = profMap.get(f.requester_id)
+        return {
+          id: f.requester_id,
+          username: prof?.username ?? null,
+          displayname: prof?.displayname ?? null,
+          display_name: prof?.display_name ?? null,
+          friendship_id: f.id,
+        }
+      }))
     } else {
       setPendingIn([])
     }

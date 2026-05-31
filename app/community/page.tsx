@@ -61,7 +61,7 @@ function extractTags(content: string) {
 }
 
 function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: number; onRequireAuth: () => void }) {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [liked, setLiked] = useState(post.liked ?? false)
   const [likesCount, setLikesCount] = useState(post.likes_count ?? 0)
   const [commentsCount, setCommentsCount] = useState(post.comments_count ?? 0)
@@ -151,7 +151,11 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
       const { data: profs } = await supabase
         .from('profiles').select('id, username, displayname, display_name').in('id', data.map((c: any) => c.user_id))
       const map = new Map(profs?.map((p: any) => [p.id, getDisplayName(p)]) ?? [])
-      setComments(data.map((c: any) => ({ ...c, displayname: map.get(c.user_id) ?? null })))
+      setComments(data.map((c: any) => ({
+        ...c,
+        displayname: map.get(c.user_id) ?? null,
+        username: profs?.find((p: any) => p.id === c.user_id)?.username ?? null,
+      })))
       setCommentsCount(data.length)
     } else {
       setComments([])
@@ -167,7 +171,12 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
       user_id: user.id, post_id: post.id, content: commentText.trim(),
     }).select('*').single()
     if (data) {
-      setComments(prev => [...prev, { ...(data as any), username: (data as any).user_id === user.id ? null : null }])
+      setComments(prev => [...prev, {
+        ...(data as Comment),
+        displayname: profile?.displayname ?? null,
+        display_name: profile?.display_name ?? null,
+        username: profile?.username ?? null,
+      }])
       setCommentsCount(c => c + 1)
     }
     setCommentText('')
@@ -531,6 +540,7 @@ export default function CommunityPage() {
       ])
 
       const nameMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, getDisplayName(p)]))
+      const profileMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]))
       const commentCount: Record<string, number> = {}
       ;(commentsRes.data ?? []).forEach((c: any) => {
         commentCount[c.post_id] = (commentCount[c.post_id] ?? 0) + 1
@@ -541,13 +551,18 @@ export default function CommunityPage() {
         likeCount[l.post_id] = (likeCount[l.post_id] ?? 0) + 1
       })
 
-      const enriched = newPosts.map(p => ({
-        ...p,
-        displayname: nameMap.get(p.user_id) ?? null,
-        comments_count: commentCount[p.id] ?? 0,
-        likes_count: likeCount[p.id] ?? 0,
-        liked: likedSet.has(p.id),
-      }))
+      const enriched = newPosts.map(p => {
+        const prof = profileMap.get(p.user_id)
+        return {
+          ...p,
+          username: prof?.username ?? null,
+          displayname: nameMap.get(p.user_id) ?? prof?.displayname ?? null,
+          display_name: prof?.display_name ?? null,
+          comments_count: commentCount[p.id] ?? 0,
+          likes_count: likeCount[p.id] ?? 0,
+          liked: likedSet.has(p.id),
+        }
+      })
       setPosts(prev => replace ? enriched : [...prev, ...enriched])
     } else {
       if (replace) setPosts([])

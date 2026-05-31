@@ -6,12 +6,10 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { WardrobeButton } from "@/components/coach/wardrobe-button"
 import { CoachSpeechBubble } from "@/components/coach/coach-speech-bubble"
 import { HomeEmptyPrompt, QuickQuestionRow } from "@/components/coach/quick-question-chips"
-import { CoachModuleLinks } from "@/components/coach/coach-module-links"
+import { Navigation } from "@/components/shared/navigation"
 import type { CoachSpeechCue } from "@/components/3d/digital-coach"
 import { touchPokeBubbleText, type TouchPokeRegion } from "@/lib/vrm-spring-poke"
 import { TAP_SPRING } from "@/lib/motion-presets"
-import ShinyText from '@/components/ShinyText/ShinyText'
-import BlurText from '@/components/BlurText/BlurText'
 import { DEFAULT_OUTFIT_ID, type CoachOutfitId } from "@/lib/coach-outfit"
 import { playCoachSpeech, stopCoachSpeech } from "@/lib/coach-tts"
 import { DigitalCoachLoading } from "@/components/coach/digital-coach-loading"
@@ -302,37 +300,9 @@ export default function HomePage() {
       <div className="app-shell__ambient fixed inset-0 z-0 pointer-events-none" aria-hidden />
 
       <FallingPetalsScreen />
+      <Navigation />
 
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-      {/* 顶栏 */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 md:px-8 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-2">
-        <div className="flex items-center gap-2.5">
-          <ShinyText
-            text="灵息"
-            speed={2.6}
-            color="oklch(0.55 0.1 350)"
-            shineColor="oklch(0.72 0.14 350)"
-            className="font-brand text-xl md:text-2xl"
-          />
-          <BlurText
-            text="3D 数字人 · 面对面陪伴"
-            className="hidden sm:!inline-flex text-xs text-muted-foreground app-subtitle-readable"
-            delay={70}
-            animateBy="words"
-          />
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-emerald-600/90">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          在线
-        </div>
-      </div>
-
-      {/* 主体：最左模块栏 + 居中舞台与对话 */}
-      <div className="flex flex-1 min-h-0 w-full">
-        <aside className="flex-shrink-0 pl-3 pt-2 md:pl-5 md:pt-6 lg:pl-8">
-          <CoachModuleLinks variant="sidebar" />
-        </aside>
-
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col pt-[calc(env(safe-area-inset-top,0px)+4.5rem)] md:pt-[calc(env(safe-area-inset-top,0px)+4rem)]">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center px-3 sm:px-4 md:px-6">
       {/* 中间 3D 舞台 — 居中 */}
       <div
@@ -392,7 +362,7 @@ export default function HomePage() {
       </div>
 
       {/* 下方对话区 */}
-      <div className="flex w-full max-w-2xl flex-1 min-h-0 flex-col pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+      <div className="flex w-full max-w-2xl flex-1 min-h-0 flex-col pb-[calc(env(safe-area-inset-bottom,0px)+5.25rem)] md:pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
         <AnimatePresence mode="wait">
           {!hasMessages ? (
             <motion.div
@@ -450,7 +420,6 @@ export default function HomePage() {
         </div>
       </div>
         </div>
-      </div>
       </div>
     </div>
   )

@@ -8,6 +8,7 @@ import TextType from '@/components/TextType/TextType'
 import BlurText from '@/components/BlurText/BlurText'
 import DecryptedText from '@/components/DecryptedText/DecryptedText'
 import ShinyText from '@/components/ShinyText/ShinyText'
+import Shuffle from '@/components/Shuffle/Shuffle'
 import { LandingHeroCarousel } from '@/components/landing/landing-hero-carousel'
 
 gsap.registerPlugin(useGSAP)
@@ -20,7 +21,6 @@ const HERO_TYPE_LINES = [
 
 export function LandingHero() {
   const sectionRef = useRef<HTMLElement>(null)
-  const titleRef = useRef<HTMLHeadingElement>(null)
 
   useGSAP(
     () => {
@@ -30,7 +30,6 @@ export function LandingHero() {
       const mm = gsap.matchMedia()
       mm.add('(prefers-reduced-motion: reduce)', () => {
         gsap.set('[data-hero-item]', { autoAlpha: 1, x: 0, y: 0 })
-        gsap.set(titleRef.current, { autoAlpha: 1, y: 0 })
       })
       mm.add('(prefers-reduced-motion: no-preference)', () => {
         gsap.from('[data-hero-item]', {
@@ -41,16 +40,6 @@ export function LandingHero() {
           stagger: 0.1,
           delay: 0.05,
         })
-
-        if (titleRef.current) {
-          gsap.from(titleRef.current, {
-            autoAlpha: 0,
-            y: 36,
-            duration: 0.85,
-            ease: 'power3.out',
-            delay: 0.12,
-          })
-        }
       })
 
       return () => mm.revert()
@@ -63,7 +52,7 @@ export function LandingHero() {
       ref={sectionRef}
       className="relative flex min-h-[100svh] items-center overflow-hidden px-5 py-[calc(env(safe-area-inset-top,0px)+1.5rem)] md:px-10"
     >
-      <div className="mx-auto grid w-full max-w-6xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-12">
+      <div className="mx-auto grid w-full max-w-6xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-12">
         <div className="max-w-xl">
           <p
             data-hero-item
@@ -78,11 +67,26 @@ export function LandingHero() {
             />
           </p>
 
-          <h1
-            ref={titleRef}
-            className="landing-readable font-brand text-[clamp(3.5rem,12vw,7.5rem)] font-light leading-[0.92] tracking-[-0.04em]"
-          >
-            灵息
+          <h1 className="landing-readable m-0">
+            <Shuffle
+              text="Spirit Breath"
+              tag="span"
+              className="landing-hero-shuffle"
+              textAlign="left"
+              shuffleDirection="right"
+              duration={0.35}
+              animationMode="evenodd"
+              shuffleTimes={2}
+              ease="power3.out"
+              stagger={0.04}
+              threshold={0.1}
+              rootMargin="0px"
+              triggerOnce
+              triggerOnHover
+              respectReducedMotion
+              loop={false}
+              loopDelay={0}
+            />
           </h1>
 
           <TextType

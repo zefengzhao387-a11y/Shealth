@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const fallback = getDisplayName(meta, currUser?.email?.split('@')[0] || '花间用户')
     const { data: created } = await supabase
       .from('profiles')
-      .upsert({ id: userId, username: fallback }, { onConflict: 'id' })
+      .upsert({ id: userId, username: fallback, displayname: fallback }, { onConflict: 'id' })
       .select('*')
       .single()
     if (created) setProfile(created)
