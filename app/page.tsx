@@ -13,7 +13,7 @@ export default function LandingPage() {
   return (
     <div className="landing-page relative h-[100svh]">
       <LandingDitherBackground />
-      <main className="relative z-10 h-full pointer-events-none [&_a]:pointer-events-auto [&_button]:pointer-events-auto">
+      <main className="relative z-50 h-full pointer-events-none [&_a]:pointer-events-auto [&_button]:pointer-events-auto [&_.pointer-events-auto]:pointer-events-auto">
         <LandingHero />
       </main>
 

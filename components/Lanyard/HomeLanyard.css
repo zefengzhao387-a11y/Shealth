@@ -18,9 +18,9 @@
   background: transparent !important;
 }
 
-/* 展示页 / — 全屏显示框，挂点在最顶端，不裁切 */
+/* 展示页 / — 全屏显示框，挂点在最顶端；层级在内容之下，不挡点击 */
 .lanyard-shell--landing {
-  z-index: 10000;
+  z-index: 30;
   inset: 0;
   width: 100vw;
   height: 100vh;
