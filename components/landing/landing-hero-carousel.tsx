@@ -7,25 +7,25 @@ const LANDING_SWAP_ITEMS = [
   {
     id: 1,
     title: '对语灵息',
-    description: '运动、睡眠、经期的私语，轻轻诉与灵息；一问一答，如与知己对坐，温暖如灯。',
+    description: '经期、睡眠与情绪的私语，都可以轻轻告诉灵息；她会认真听，温柔回应。',
     icon: MessageCircle,
   },
   {
     id: 2,
     title: '动起成诗',
-    description: '短时动作与恢复同行；哪怕只动十分钟，也是写给身体的一行字。',
+    description: '短时舒展与恢复同行；动或不动，都由你决定，身体永远值得被善待。',
     icon: Dumbbell,
   },
   {
     id: 3,
     title: '繁花同路',
-    description: '社区里同路人的鼓励如春风；彼此见证生长，每一步都有了回响。',
+    description: '社区里同路人的鼓励如春风；彼此倾听、互相看见，不必比较，只要陪伴。',
     icon: Users,
   },
   {
     id: 4,
     title: '镜照生长',
-    description: '身形的起伏，悄悄落入镜心；曲线如河，星点如成就，皆与你有关。',
+    description: '身体的起伏被温柔记录；每一次变化，都是与自己好好相处的痕迹。',
     icon: Sparkles,
   },
 ] as const

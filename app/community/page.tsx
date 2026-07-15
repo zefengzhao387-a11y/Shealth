@@ -13,7 +13,7 @@ import { ResponsiveBottomSheet } from "@/components/shared/responsive-bottom-she
 import { AppPageHeader } from "@/components/shared/app-page-header"
 
 const TOPICS = [
-  { id: "1", name: "21天戒糖", count: "2.3k", gradient: "from-peach/50 to-primary/40", emoji: "🍭" },
+  { id: "1", name: "21天温柔饮食", count: "2.3k", gradient: "from-peach/50 to-primary/40", emoji: "🍭" },
   { id: "2", name: "晨间唤醒", count: "1.8k", gradient: "from-lilac/50 to-secondary/40", emoji: "☀️" },
   { id: "3", name: "经期舒缓", count: "3.1k", gradient: "from-primary/50 to-peach/40", emoji: "🌙" },
   { id: "4", name: "冥想日记", count: "1.5k", gradient: "from-sage/50 to-accent/40", emoji: "🧘" },
@@ -470,7 +470,7 @@ function CreatePostModal({
       open={open}
       onOpenChange={(o) => { if (!o) onClose() }}
       title="发布动态"
-      description="分享你的蜕变故事、健康食谱、运动心得"
+      description="分享你的日常、心情与健康心得"
     >
       <form onSubmit={submit}>
         <textarea
@@ -597,7 +597,7 @@ export default function CommunityPage() {
             <AppPageHeader
               kicker="Community"
               title="繁花社区"
-              subtitle="分享你的蜕变，与闺蜜一起成长"
+              subtitle="分享你的故事，与同路人彼此鼓励、互相看见"
               className="mb-0"
             />
             <span className="chip bg-primary/12 text-primary mb-0.5">
@@ -652,7 +652,7 @@ export default function CommunityPage() {
               </div>
               <div className="relative flex items-center gap-3 px-4 py-3">
                 <UserAvatar seed={user.id} size={8} />
-                <span className="text-[13px] text-muted-foreground flex-1">今天有什么想分享的？🌸</span>
+                <span className="text-[13px] text-muted-foreground flex-1">今天想分享点什么？🌸</span>
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-sm">
                   <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                 </div>
@@ -684,7 +684,7 @@ export default function CommunityPage() {
             <motion.div className="text-center py-16" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div className="text-5xl mb-4">🌸</div>
               <p className="text-foreground font-medium mb-2">社区还很安静</p>
-              <p className="text-sm text-muted-foreground mb-6">成为第一个分享故事的人吧</p>
+              <p className="text-sm text-muted-foreground mb-6">成为第一个开口的人吧，这里欢迎每一种声音</p>
               <motion.button
                 className="px-6 py-3 rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium"
                 onClick={() => handleCreatePost()}

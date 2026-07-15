@@ -28,11 +28,11 @@ interface Course {
 
 const courses: Course[] = [
   {
-    id: "1", title: "晨间唤醒普拉提", subtitle: "激活全身能量",
+    id: "1", title: "晨间唤醒普拉提", subtitle: "温柔唤醒身体",
     category: "pilates", durationMinutes: 15, difficulty: "入门",
     instructor: "Flora 教练", points: 30,
     thumbnail: "from-peach/50 to-primary/40", gradient: "from-peach/30 to-primary/20",
-    description: "用温柔的普拉提动作唤醒沉睡的肌肉，为新的一天注入能量。",
+    description: "用温柔的普拉提动作唤醒沉睡的肌肉，为新的一天注入柔和的能量。",
     steps: ["深呼吸预热 2 分钟", "骨盆中立位练习", "腹部核心激活", "侧卧腿部练习", "脊柱伸展收尾"],
   },
   {
@@ -60,11 +60,11 @@ const courses: Course[] = [
     steps: ["身体扫描放松", "腹式呼吸练习", "正念冥想引导", "想象海浪意象", "渐进式入眠"],
   },
   {
-    id: "5", title: "核心塑形普拉提", subtitle: "雕塑腰腹线条",
+    id: "5", title: "核心塑形普拉提", subtitle: "温和强化核心",
     category: "pilates", durationMinutes: 30, difficulty: "进阶",
     instructor: "Flora 教练", points: 60,
     thumbnail: "from-secondary/50 to-lilac/40", gradient: "from-secondary/30 to-lilac/20",
-    description: "针对核心肌群的进阶普拉提课程，有效塑造腰腹线条。",
+    description: "温和唤醒核心肌群，在尊重身体的前提下建立力量，不追求速成。",
     steps: ["核心预热激活", "百次练习", "单腿拉伸系列", "侧卧腿部训练", "游泳式练习", "脊柱放松收尾"],
   },
   {
@@ -605,7 +605,7 @@ export default function WorkoutPage() {
           <AppPageHeader
             kicker="Workout"
             title="悦动专区"
-            subtitle="选择一个课程，开始今天的练习"
+            subtitle="按自己的状态选课，不必勉强"
           />
 
           <TodayRecommend onStart={setSelectedCourse} />

@@ -19,7 +19,7 @@ export function WorkoutCountdownOverlay({ seconds }: { seconds: number | null })
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0 }}
           >
-            <p className="text-sm font-medium text-foreground/75 sm:text-base">陪你暴汗共练中...</p>
+            <p className="text-sm font-medium text-foreground/75 sm:text-base">陪你一起慢慢练…</p>
             <motion.p
               key={seconds}
               className="mt-1 font-brand text-4xl tabular-nums text-primary sm:text-5xl"

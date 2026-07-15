@@ -147,10 +147,10 @@ export function raycastVrmTouch(
 export function touchPokeBubbleText(region: TouchPokeRegion): string {
   switch (region) {
     case 'hair':
-      return '哎呀，头发被你弄乱啦（嘟嘴）～快来和灵息一起做拉伸正正形！'
+      return '诶，发型要乱啦～来，我们一起做做肩颈放松吧。'
     case 'skirt':
-      return '欸——裙摆被你撩起来啦！（脸红）一起做个拉伸，把身形正回来吧～'
+      return '哈哈，别闹啦～来，和灵息一起舒展一下身体吧。'
     case 'shoulder':
-      return '嘿嘿，别闹啦～（躲闪）来，和灵息一起松松肩、拉拉筋！'
+      return '放松点～来，我们一起松松肩、拉拉筋。'
   }
 }

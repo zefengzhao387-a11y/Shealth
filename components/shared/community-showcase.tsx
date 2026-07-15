@@ -84,7 +84,7 @@ export function CommunityShowcase() {
           ✨ 本周闪耀明星
         </h3>
         <p className="text-sm text-muted-foreground">
-          和她们一起享受运动的快乐
+          和她们一起，按自己的节奏享受运动
         </p>
       </motion.div>
 
@@ -139,7 +139,7 @@ export function CommunityShowcase() {
         transition={{ duration: 3, repeat: Infinity }}
       >
         <p className="text-sm text-foreground">
-          💝 <span className="font-semibold">加入她们的行列</span>，一起蜕变成更好的自己！
+          💝 <span className="font-semibold">加入她们的行列</span>，彼此鼓励，一起温柔生长
         </p>
       </motion.div>
     </div>

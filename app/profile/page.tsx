@@ -18,7 +18,7 @@ import { ResponsiveBottomSheet } from "@/components/shared/responsive-bottom-she
 const ACHIEVEMENTS = [
   { id: "first_workout", name: "初绽", desc: "完成第一次训练", icon: "🌸", condition: "完成 1 次训练", gradient: "from-peach/60 to-primary/50" },
   { id: "week_streak", name: "坚持", desc: "连续打卡 7 天", icon: "🌟", condition: "连续打卡 7 天", gradient: "from-lilac/60 to-secondary/50" },
-  { id: "month_streak", name: "蜕变", desc: "连续打卡 30 天", icon: "👑", condition: "连续打卡 30 天", gradient: "from-sage/60 to-accent/50" },
+  { id: "month_streak", name: "恒心", desc: "连续打卡 30 天", icon: "👑", condition: "连续打卡 30 天", gradient: "from-sage/60 to-accent/50" },
   { id: "hundred_points", name: "积累", desc: "累计 100 运动分", icon: "✨", condition: "累计 100 运动分", gradient: "from-primary/60 to-secondary/50" },
   { id: "five_hundred_points", name: "绽放", desc: "累计 500 运动分", icon: "🌺", condition: "累计 500 运动分", gradient: "from-secondary/60 to-lilac/50" },
   { id: "hour_total", name: "初心", desc: "累计运动 60 分钟", icon: "💪", condition: "累计运动 60 分钟", gradient: "from-accent/60 to-sage/50" },
@@ -100,7 +100,7 @@ function DimensionModal({ open, onClose, onSaved }: { open: boolean; onClose: ()
       open={open}
       onOpenChange={(o) => { if (!o) onClose() }}
       title="录入今日数据"
-      description="记录你的身体变化轨迹"
+      description="记录你的身体变化轨迹，不评判，只陪伴"
     >
       <form onSubmit={submit} className="space-y-3 pb-2">
         {fields.map(f => (
@@ -269,7 +269,7 @@ function PrivacyModal({ open, onClose }: { open: boolean; onClose: () => void })
 // ── 帮助中心 ──────────────────────────────────────────────────
 const FAQ = [
   { q: '如何获得运动分？', a: '完成悦动专区的课程后，系统会自动发放对应运动分。每日打卡也可获得 10 分。' },
-  { q: '连续打卡有什么奖励？', a: '连续打卡会提升你的连续天数记录，并可解锁「坚持」「蜕变」等成就徽章。' },
+  { q: '连续打卡有什么奖励？', a: '连续打卡会记录你的坚持天数，并可解锁「坚持」「恒心」等成就徽章。' },
   { q: '维度数据如何使用？', a: '在「镜心」页面点击「录入今日数据」，输入体重、柔韧度等指标，积累 2 条以上可查看趋势图。' },
   { q: '如何发送私信？', a: '在繁花社区的帖子下方点击信封图标，即可向发帖者发送私信。' },
   { q: '成就徽章如何解锁？', a: '满足相应条件后系统会自动解锁，点击灰色徽章可查看解锁条件。' },
@@ -631,7 +631,7 @@ function AboutModal({ open, onClose }: { open: boolean; onClose: () => void }) {
       <p className="text-sm text-muted-foreground text-center leading-relaxed mb-6">
         以 3D 数字人灵息为核心的女性健康陪伴
         <br />
-        让蜕变成为一种温柔的习惯
+        让照顾自己也成为一种温柔的习惯
       </p>
       <div className="glass rounded-2xl p-4 space-y-3 mb-2">
         {[
@@ -698,7 +698,7 @@ export default function ProfilePage() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="text-6xl mb-4">🌸</div>
             <h2 className="text-xl font-medium text-foreground mb-2">登录后查看镜心</h2>
-            <p className="text-sm text-muted-foreground mb-8">记录你的身体变化，解锁专属成就</p>
+            <p className="text-sm text-muted-foreground mb-8">温柔记录身体变化，解锁属于你的小成就</p>
             <motion.button
               className="px-8 py-3 rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium"
               onClick={openAuthModal} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
@@ -729,7 +729,7 @@ export default function ProfilePage() {
 
       <div className="relative z-10 pt-24 md:pt-16 mobile-shell">
         <div className="max-w-2xl mx-auto">
-          <AppPageHeader kicker="Profile" title="镜心" subtitle="记录变化，看见自己的成长" className="px-1" />
+          <AppPageHeader kicker="Profile" title="镜心" subtitle="温柔记录变化，看见自己的成长" className="px-1" />
 
           {/* 个人头部 */}
           <motion.div className="mb-5" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
@@ -840,7 +840,7 @@ export default function ProfilePage() {
               >
                 <p className="text-3xl mb-2">📊</p>
                 <p className="text-sm text-foreground mb-1">还没有维度记录</p>
-                <p className="text-xs text-muted-foreground mb-4">开始记录身体变化，见证你的蜕变</p>
+                <p className="text-xs text-muted-foreground mb-4">开始记录吧，每一次变化都值得被温柔看见</p>
                 <motion.button
                   className="px-5 py-2 rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground text-sm"
                   onClick={() => setShowDimModal(true)}

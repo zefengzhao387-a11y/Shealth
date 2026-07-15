@@ -39,18 +39,18 @@ interface UserChatMsg {
 const MAX_VISIBLE_USER_MSGS = 2
 
 const QUICK_QUESTIONS = [
-  "今天适合做什么运动？",
-  "如何缓解经期不适？",
-  "有什么快速入睡的方法？",
-  "如何改善久坐的肩颈？",
+  "今天身体状态适合怎么动？",
+  "经期不舒服，可以怎么舒缓？",
+  "睡不着的时候，有什么助眠方法？",
+  "久坐肩颈酸，怎么放松比较好？",
 ]
 
 const getGreeting = () => {
   const h = new Date().getHours()
-  if (h < 6) return "夜深了，好好休息 🌙"
-  if (h < 12) return "早安，今天也要元气满满 ☀️"
-  if (h < 18) return "下午好，记得休息一下 🍃"
-  return "晚安，今天辛苦了 ✨"
+  if (h < 6) return "夜深了，记得早点休息，身体需要被温柔对待 🌙"
+  if (h < 12) return "早安，醒来先照顾好自己的感觉 ☀️"
+  if (h < 18) return "下午好，忙里偷闲，给自己一点喘息 🍃"
+  return "晚安，今天已经做得很好了 ✨"
 }
 
 function ThinkingDots() {
@@ -170,7 +170,7 @@ export default function HomePage() {
   const playWelcomeVoice = useCallback(() => {
     if (welcomePlayedRef.current) return
     welcomePlayedRef.current = true
-    const text = "今天锻炼了吗？"
+    const text = "今天，有好好照顾自己的身体吗？"
     const token = ++speechToken.current
     setSpeechMessageKey(token)
     setBubbleText(text)
@@ -181,7 +181,7 @@ export default function HomePage() {
   const playGazeEasterEgg = useCallback(() => {
     if (gazeEasterEggPlayedRef.current || thinking || coachSpeech) return
     gazeEasterEggPlayedRef.current = true
-    const text = "宝贝，一直看着我，是我脸上有什么东西吗？（笑）"
+    const text = "一直看着我呀？有什么想跟我说的吗？（笑）"
     const token = ++speechToken.current
     setSpeechMessageKey(token)
     setBubbleText(text)
@@ -374,7 +374,7 @@ export default function HomePage() {
             >
               <HomeEmptyPrompt
                 greeting={greeting}
-                subtitle="我是灵息，你的 3D 数字人教练。运动、健康、情绪，都可以直接跟我聊 ✨"
+                subtitle="我是灵息，你的 3D 健康陪伴。运动、经期、情绪与休息，都可以慢慢跟我聊 ✨"
                 questions={QUICK_QUESTIONS}
                 onSelect={handleSend}
               />

@@ -10,7 +10,7 @@ const ACHIEVEMENT_NAMES: Record<string, { name: string; desc: string; icon: stri
   five_hundred_points: { name: "绽放", desc: "累计获得 500 运动分！", icon: "🌺" },
   thousand_points:     { name: "满园", desc: "累计获得 1000 运动分！", icon: "🎊" },
   week_streak:         { name: "坚持", desc: "连续打卡 7 天！", icon: "🌟" },
-  month_streak:        { name: "蜕变", desc: "连续打卡 30 天！", icon: "👑" },
+  month_streak:        { name: "恒心", desc: "连续打卡 30 天！", icon: "👑" },
   hour_total:          { name: "初心", desc: "累计运动 60 分钟！", icon: "💪" },
   ten_hours_total:     { name: "花开", desc: "累计运动 600 分钟！", icon: "🏵️" },
   ten_workouts:        { name: "勤勉", desc: "完成 10 次训练！", icon: "🎯" },

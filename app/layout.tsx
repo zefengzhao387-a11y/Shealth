@@ -8,8 +8,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: '她健康 Shealth · 3D 数字人灵息 | 面对面聊健康与运动',
-  description: '她健康 Shealth - 以 3D 数字人灵息为核心的女性健康应用。实时对话、语音口型、换装互动，悦动训练、繁花社区与镜心数据围绕灵息展开。',
+  title: '她健康 Shealth · 专为女性的 3D 健康陪伴',
+  description: '她健康 Shealth — 以 3D 数字人灵息陪伴，专为女性设计。倾听身体节奏，支持经期照护、舒缓运动与情绪安放，不催促，只温柔陪伴。',
   generator: 'v0.app',
   icons: {
     icon: [

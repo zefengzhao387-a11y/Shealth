@@ -15,9 +15,9 @@ import { LandingHeroCarousel } from '@/components/landing/landing-hero-carousel'
 gsap.registerPlugin(useGSAP)
 
 const HERO_TYPE_LINES = [
-  '你的 3D 健康陪伴',
-  '运动 · 恢复 · 情绪 · 日常',
-  '每天十分钟，也算数',
+  '专为女性设计的健康陪伴',
+  '运动 · 经期 · 情绪 · 自我照护',
+  '尊重身体节奏，慢一点也没关系',
 ]
 
 export function LandingHero() {
@@ -61,7 +61,7 @@ export function LandingHero() {
           >
             <span className="landing-kicker__dot" aria-hidden />
             <ShinyText
-              text="Shealth · 3D Coach"
+              text="她健康 · 懂你所需"
               speed={3}
               color="oklch(0.84 0.032 var(--h-rose-soft))"
               shineColor="oklch(0.95 0.025 var(--h-rose-bright))"
@@ -107,7 +107,7 @@ export function LandingHero() {
           />
 
           <BlurText
-            text="她健康 Shealth — 以 3D 数字人灵息为核心，把运动、恢复与情绪支持放进你的日常。"
+            text="她健康 Shealth — 以 3D 数字人灵息陪伴，专为女性设计。倾听你的身体，支持经期、运动与情绪，不催促，只温柔相伴。"
             className="landing-muted-readable mt-8 max-w-lg text-sm leading-relaxed md:text-[15px]"
             delay={55}
             animateBy="words"
@@ -122,7 +122,7 @@ export function LandingHero() {
                 speed="5s"
               >
                 <DecryptedText
-                  text="开始体验"
+                  text="轻轻开始"
                   animateOn="view"
                   speed={35}
                   maxIterations={8}

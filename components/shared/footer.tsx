@@ -14,7 +14,7 @@ export function Footer({ showCTA = true }: { showCTA?: boolean }) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            准备好和灵息见一面了吗？
+            欢迎来和灵息聊聊，按你的节奏就好
           </motion.h3>
           <Link href="/home">
             <motion.button

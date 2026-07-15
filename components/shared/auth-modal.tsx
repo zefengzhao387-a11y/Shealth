@@ -70,7 +70,7 @@ export function AuthModal() {
                 <span className="font-brand text-3xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                   她健康
                 </span>
-                <p className="text-xs text-muted-foreground mt-1">遇见你的 3D 数字人 · 灵息</p>
+                <p className="text-xs text-muted-foreground mt-1">遇见懂你的 3D 陪伴 · 灵息</p>
               </div>
 
               {/* 标签切换 */}

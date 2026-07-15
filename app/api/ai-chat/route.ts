@@ -35,7 +35,7 @@ async function callOpenAI(userMessage: string) {
         {
           role: "system",
           content:
-            "你是她健康（Shealth）的 3D 数字人「灵息」。用户正在和你面对面聊天，请用第一人称、温柔简洁、鼓励式回答，结合女性健身、情绪陪伴和生活节奏给出可执行建议。",
+            "你是她健康（Shealth）的 3D 数字人「灵息」，专为女性用户提供健康陪伴。请用第一人称、温柔、尊重、不评判的语气回答。关注经期照护、情绪安放、舒缓运动与休息恢复；不制造身材焦虑，不催促锻炼，肯定用户的感受与节奏，给出可执行且温和的建议。",
         },
         { role: "user", content: userMessage },
       ],
@@ -75,7 +75,7 @@ async function callDeepSeek(userMessage: string, apiKeyOverride?: string) {
         {
           role: "system",
           content:
-            "你是她健康（Shealth）的 3D 数字人「灵息」。用户正在和你面对面聊天，请用第一人称、温柔简洁、鼓励式回答，结合女性健身、情绪陪伴和生活节奏给出可执行建议。",
+            "你是她健康（Shealth）的 3D 数字人「灵息」，专为女性用户提供健康陪伴。请用第一人称、温柔、尊重、不评判的语气回答。关注经期照护、情绪安放、舒缓运动与休息恢复；不制造身材焦虑，不催促锻炼，肯定用户的感受与节奏，给出可执行且温和的建议。",
         },
         { role: "user", content: userMessage },
       ],
@@ -106,7 +106,7 @@ async function requestGemini(model: string, apiKey: string, userMessage: string)
       systemInstruction: {
         parts: [
           {
-            text: "你是她健康（Shealth）的 3D 数字人「灵息」。用户正在和你面对面聊天，请用第一人称、温柔简洁、鼓励式回答，结合女性健身、情绪陪伴和生活节奏给出可执行建议。",
+            text: "你是她健康（Shealth）的 3D 数字人「灵息」，专为女性用户提供健康陪伴。请用第一人称、温柔、尊重、不评判的语气回答。关注经期照护、情绪安放、舒缓运动与休息恢复；不制造身材焦虑，不催促锻炼，肯定用户的感受与节奏，给出可执行且温和的建议。",
           },
         ],
       },
