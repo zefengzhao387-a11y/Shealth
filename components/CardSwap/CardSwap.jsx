@@ -4,8 +4,14 @@ import React, { Children, cloneElement, forwardRef, isValidElement, useEffect, u
 import gsap from 'gsap';
 import './CardSwap.css';
 
-export const Card = forwardRef(({ customClass = '', className = '', ...rest }, ref) => (
-  <div ref={ref} className={`card ${customClass} ${className}`.trim()} {...rest} />
+/**
+ * @typedef {React.HTMLAttributes<HTMLDivElement> & { customClass?: string, children?: React.ReactNode }} CardProps
+ */
+
+export const Card = /** @type {React.ForwardRefExoticComponent<CardProps & React.RefAttributes<HTMLDivElement>>} */ (forwardRef(
+  ({ customClass = '', className = '', children = undefined, ...rest }, ref) => (
+    <div ref={ref} className={`card ${customClass} ${className}`.trim()} {...rest}>{children}</div>
+  ),
 ));
 Card.displayName = 'Card';
 
@@ -36,7 +42,7 @@ const CardSwap = ({
   verticalDistance = 70,
   delay = 5000,
   pauseOnHover = false,
-  onCardClick,
+  onCardClick = undefined,
   skewAmount = 6,
   easing = 'elastic',
   className = '',

@@ -10,7 +10,7 @@ const StarBorder = ({
   speed = '6s',
   thickness = 1,
   children,
-  style,
+  style = {},
   ...rest
 }) => {
   return (

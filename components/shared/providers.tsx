@@ -22,7 +22,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
           className="min-h-screen"
         >
           <CapacitorInit />
-          {children}
+          <div id="main-content" tabIndex={-1}>
+            {children}
+          </div>
           <GlobalCoachDock />
           <AuthModal />
           <PointsPopup />

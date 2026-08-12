@@ -1,7 +1,7 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
-import { useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
 
 function getUsernameHint(username: string): string {
@@ -20,15 +20,34 @@ export function AuthModal() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(false)
+  const titleId = useId()
   const usernameHint = getUsernameHint(username)
   const usernameValid = username.trim() !== '' && usernameHint === "账号格式可用"
 
-  const reset = () => { setError(''); setUsername(''); setDisplayName(''); setPassword(''); setConfirmPassword('') }
+  const reset = () => {
+    setError('')
+    setNotice('')
+    setUsername('')
+    setDisplayName('')
+    setPassword('')
+    setConfirmPassword('')
+  }
+
+  useEffect(() => {
+    if (!showAuthModal) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !loading) closeAuthModal()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [showAuthModal, loading, closeAuthModal])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setNotice('')
     if (tab === 'register' && !displayName.trim()) { setError('请填写昵称'); return }
     if (!username.trim()) { setError('请输入账号'); return }
     if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) { setError('账号仅支持英文、数字、下划线（不支持中文）'); return }
@@ -37,14 +56,23 @@ export function AuthModal() {
     if (tab === 'register' && password !== confirmPassword) { setError('两次输入的密码不一致'); return }
     setLoading(true)
 
-    if (tab === 'login') {
-      const { error } = await signIn(username, password)
-      if (error) setError(error)
-    } else {
-      const { error } = await signUp(username, displayName, password)
-      if (error) setError(error)
+    try {
+      if (tab === 'login') {
+        const { error } = await signIn(username, password)
+        if (error) setError(error)
+      } else {
+        const { error, requiresEmailConfirmation } = await signUp(username, displayName, password)
+        if (error) setError(error)
+        if (requiresEmailConfirmation) {
+          setNotice('账号已创建，但当前服务开启了邮箱确认。请让管理员在 Supabase Auth 设置中关闭“Confirm email”后再登录。')
+        }
+      }
+    } catch (submitError) {
+      console.error('[auth-modal] submit failed:', submitError)
+      setError('请求没有完成，请稍后重试')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
@@ -63,13 +91,16 @@ export function AuthModal() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
           >
             <div className="w-full max-w-sm bg-card/95 backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-border/30 relative">
               {/* Logo */}
               <div className="text-center mb-6">
-                <span className="font-brand text-3xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                <h2 id={titleId} className="font-brand text-3xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                   她健康
-                </span>
+                </h2>
                 <p className="text-xs text-muted-foreground mt-1">遇见懂你的 3D 陪伴 · 灵息</p>
               </div>
 
@@ -91,57 +122,87 @@ export function AuthModal() {
               {/* 表单 */}
               <form onSubmit={handleSubmit} className="space-y-3">
                 {tab === 'register' && (
-                  <input
+                  <label className="block">
+                    <span className="sr-only">昵称</span>
+                    <input
                     type="text"
                     placeholder="昵称（必填，可用中文和任意字符）"
                     value={displayName}
                     onChange={e => setDisplayName(e.target.value)}
+                    autoComplete="nickname"
+                    maxLength={32}
                     className="w-full px-4 py-3 rounded-2xl bg-muted/60 border border-border/30 outline-none text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 transition-colors"
                   />
+                  </label>
                 )}
-                <input
+                <label className="block">
+                  <span className="sr-only">登录账号</span>
+                  <input
                   type="text"
                   placeholder="账号（登录用，仅英文/数字/下划线）"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   autoComplete="username"
+                  autoFocus
+                  minLength={2}
+                  maxLength={24}
                   className="w-full px-4 py-3 rounded-2xl bg-muted/60 border border-border/30 outline-none text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 transition-colors"
                 />
+                </label>
                 <p className={`-mt-1 px-1 text-xs ${usernameValid ? "text-accent" : "text-muted-foreground"}`}>
                   {usernameHint}
                 </p>
-                <input
+                <label className="block">
+                  <span className="sr-only">密码</span>
+                  <input
                   type="password"
                   placeholder={tab === 'register' ? '密码（至少 6 位）' : '密码'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
+                  minLength={tab === 'register' ? 6 : undefined}
                   className="w-full px-4 py-3 rounded-2xl bg-muted/60 border border-border/30 outline-none text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 transition-colors"
                 />
+                </label>
                 {tab === 'register' && (
-                  <input
+                  <label className="block">
+                    <span className="sr-only">确认密码</span>
+                    <input
                     type="password"
                     placeholder="确认密码"
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
                     autoComplete="new-password"
+                    minLength={6}
                     className="w-full px-4 py-3 rounded-2xl bg-muted/60 border border-border/30 outline-none text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 transition-colors"
                   />
+                  </label>
                 )}
 
                 {error && (
                   <motion.p
                     className="text-xs text-destructive text-center px-2"
+                    role="alert"
                     initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
                   >
                     {error}
                   </motion.p>
                 )}
 
+                {notice && (
+                  <motion.p
+                    className="rounded-xl border border-primary/25 bg-primary/10 px-3 py-2.5 text-xs leading-relaxed text-foreground"
+                    initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    role="status"
+                  >
+                    {notice}
+                  </motion.p>
+                )}
+
                 <motion.button
                   type="submit"
-                  disabled={loading}
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium text-sm"
+                  disabled={loading || (tab === 'register' && !usernameValid)}
+                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium text-sm disabled:cursor-not-allowed disabled:opacity-55"
                   whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
                 >
                   {loading ? (
@@ -164,6 +225,9 @@ export function AuthModal() {
               {/* 关闭 */}
               <button
                 onClick={closeAuthModal}
+                type="button"
+                aria-label="关闭登录注册窗口"
+                disabled={loading}
                 className="absolute top-4 right-4 w-8 h-8 rounded-full glass flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

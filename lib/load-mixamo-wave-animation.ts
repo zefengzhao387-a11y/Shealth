@@ -16,7 +16,7 @@ assetLoadingManager.setURLModifier((url) => {
 })
 
 function stripEmbeddedMeshes(root: THREE.Object3D) {
-  const toRemove: THREE.Object3D[] = []
+  const toRemove: Array<THREE.Mesh | THREE.SkinnedMesh> = []
   root.traverse((obj) => {
     if (obj instanceof THREE.Mesh || obj instanceof THREE.SkinnedMesh) {
       toRemove.push(obj)

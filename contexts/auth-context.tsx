@@ -5,6 +5,7 @@ import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { Profile } from '@/lib/supabase'
 import { getDisplayName } from '@/lib/display-name'
+import { getFriendlyNetworkError, withTimeout } from '@/lib/async-utils'
 
 // 兼容最近一版哈希算法（仅用于历史账号登录回退）
 function hash32(input: string, seed: number) {
@@ -50,7 +51,10 @@ interface AuthContextType {
   session: Session | null
   loading: boolean
   signIn: (username: string, password: string) => Promise<{ error: string | null }>
-  signUp: (username: string, displayName: string, password: string) => Promise<{ error: string | null }>
+  signUp: (username: string, displayName: string, password: string) => Promise<{
+    error: string | null
+    requiresEmailConfirmation?: boolean
+  }>
   signOut: () => Promise<void>
   showAuthModal: boolean
   openAuthModal: () => void
@@ -78,32 +82,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [showAuthModal, setShowAuthModal] = useState(false)
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
-    if (data) { setProfile(data); return }
-    // profile 不存在（trigger 未配置）—— 从 user_metadata 补建
-    const { data: { user: currUser } } = await supabase.auth.getUser()
-    const meta = (currUser?.user_metadata ?? {}) as { username?: string; display_name?: string; displayname?: string }
-    const fallback = getDisplayName(meta, currUser?.email?.split('@')[0] || '花间用户')
-    const { data: created } = await supabase
-      .from('profiles')
-      .upsert({ id: userId, username: fallback, displayname: fallback }, { onConflict: 'id' })
-      .select('*')
-      .single()
-    if (created) setProfile(created)
+    try {
+      const { data } = await withTimeout(
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+      )
+      if (data) { setProfile(data); return }
+      // profile 不存在（trigger 未配置）—— 从 user_metadata 补建
+      const { data: { user: currUser } } = await withTimeout(supabase.auth.getUser())
+      const meta = (currUser?.user_metadata ?? {}) as { username?: string; display_name?: string; displayname?: string }
+      const accountName = meta.username?.trim() || currUser?.email?.split('@')[0] || 'user'
+      const fallback = getDisplayName(meta, accountName)
+      const { data: created } = await withTimeout(
+        supabase
+          .from('profiles')
+          .upsert({
+            id: userId,
+            username: accountName,
+            displayname: fallback,
+            display_name: fallback,
+          }, { onConflict: 'id' })
+          .select('*')
+          .single(),
+      )
+      if (created) setProfile(created)
+    } catch (error) {
+      console.error('[auth] profile load failed:', error)
+    }
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) fetchProfile(session.user.id)
-      setLoading(false)
-    })
+    withTimeout(supabase.auth.getSession())
+      .then(({ data: { session } }) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+        if (session?.user) void fetchProfile(session.user.id)
+      })
+      .catch((error) => console.error('[auth] restore session failed:', error))
+      .finally(() => setLoading(false))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
-      if (session?.user) fetchProfile(session.user.id)
+      if (session?.user) void fetchProfile(session.user.id)
       else setProfile(null)
     })
 
@@ -120,7 +140,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const encodedEmail = toEncodedInternalEmail(normalized)
     const legacyEmail = toLegacyInternalEmail(normalized)
 
-    const primaryRes = await supabase.auth.signInWithPassword({ email: primaryEmail, password })
+    let primaryRes
+    try {
+      primaryRes = await withTimeout(
+        supabase.auth.signInWithPassword({ email: primaryEmail, password }),
+      )
+    } catch (error) {
+      return { error: getFriendlyNetworkError(error, '登录失败，请稍后重试') }
+    }
     if (!primaryRes.error) {
       setShowAuthModal(false)
       return { error: null }
@@ -129,7 +156,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 兼容历史映射算法
     const fallbacks = [hashedEmail, encodedEmail, legacyEmail].filter((email, i, arr) => email !== primaryEmail && arr.indexOf(email) === i)
     for (const fallbackEmail of fallbacks) {
-      const fallbackRes = await supabase.auth.signInWithPassword({ email: fallbackEmail, password })
+      let fallbackRes
+      try {
+        fallbackRes = await withTimeout(
+          supabase.auth.signInWithPassword({ email: fallbackEmail, password }),
+        )
+      } catch (error) {
+        return { error: getFriendlyNetworkError(error, '登录失败，请稍后重试') }
+      }
       if (!fallbackRes.error) {
         setShowAuthModal(false)
         return { error: null }
@@ -158,19 +192,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (password.length < 6) return { error: '密码至少需要 6 位' }
 
     const email = toInternalEmail(normalized)
-    const { error, data } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { username: normalized, display_name: normalizedDisplayName, displayname: normalizedDisplayName } },
-    })
-    if (!error && data.user) {
-      // upsert 确保 profile 存在，不依赖 trigger
-      const { error: upErr } = await supabase
-        .from('profiles')
-        .upsert({ id: data.user.id, username: normalizedDisplayName, displayname: normalizedDisplayName }, { onConflict: 'id' })
-      if (upErr) console.error('[signUp] profile upsert error:', upErr.code, upErr.message)
-      await fetchProfile(data.user.id)
+    let result
+    try {
+      result = await withTimeout(supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username: normalized,
+            display_name: normalizedDisplayName,
+            displayname: normalizedDisplayName,
+          },
+        },
+      }))
+    } catch (requestError) {
+      return { error: getFriendlyNetworkError(requestError, '注册失败，请稍后重试') }
     }
-    if (!error) setShowAuthModal(false)
+
+    const { error, data } = result
+    if (!error && data.user && data.session) {
+      // 登录账号和展示昵称分列保存；已有数据库 trigger 时仍可安全 upsert。
+      let upErr
+      try {
+        const profileResult = await withTimeout(
+          supabase.from('profiles').upsert({
+            id: data.user.id,
+            username: normalized,
+            displayname: normalizedDisplayName,
+            display_name: normalizedDisplayName,
+          }, { onConflict: 'id' }),
+        )
+        upErr = profileResult.error
+      } catch (profileError) {
+        console.error('[signUp] profile upsert failed:', profileError)
+        return { error: '账号已创建，但个人资料初始化超时，请重新登录后再试' }
+      }
+      if (upErr) {
+        console.error('[signUp] profile upsert error:', upErr.code, upErr.message)
+        return { error: '账号已创建，但个人资料初始化失败，请重新登录后再试' }
+      }
+      await fetchProfile(data.user.id)
+      setShowAuthModal(false)
+    }
+    if (!error && data.user && !data.session) {
+      return { error: null, requiresEmailConfirmation: true }
+    }
     if (error?.message.includes('User already registered')) return { error: '该账号已被注册' }
     if (error?.message.includes('Email address') && error?.message.includes('invalid')) {
       return { error: '账号系统映射异常，请更换账号后重试' }

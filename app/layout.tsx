@@ -4,8 +4,8 @@ import { Analytics } from '@vercel/analytics/next'
 import { Providers } from '@/components/shared/providers'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const geist = Geist({ subsets: ["latin"], variable: '--font-geist-sans' });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: '--font-geist-mono' });
 
 export const metadata: Metadata = {
   title: '她健康 Shealth · 专为女性的 3D 健康陪伴',
@@ -44,7 +44,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" className="bg-background" style={{ colorScheme: 'dark' }}>
-      <body className="font-sans antialiased min-h-screen bg-background text-foreground">
+      <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased min-h-screen bg-background text-foreground`}>
+        <a href="#main-content" className="skip-link">跳到主要内容</a>
         <Providers>
           {children}
         </Providers>

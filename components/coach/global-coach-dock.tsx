@@ -33,11 +33,28 @@ export function GlobalCoachDock() {
   const dragRef = useRef<{ pointerId: number; startY: number; startOffset: number } | null>(null)
   const [offsetY, setOffsetY] = useState(0)
   const [mounted, setMounted] = useState(false)
+  const [shouldLoadCoach, setShouldLoadCoach] = useState(false)
 
   useEffect(() => {
     setOffsetY(readSavedOffset())
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (pathname === '/' || pathname === '/home') {
+      setShouldLoadCoach(false)
+      return
+    }
+
+    const requestIdle = window.requestIdleCallback
+    if (requestIdle) {
+      const idleId = requestIdle(() => setShouldLoadCoach(true), { timeout: 1800 })
+      return () => window.cancelIdleCallback(idleId)
+    }
+
+    const timer = window.setTimeout(() => setShouldLoadCoach(true), 900)
+    return () => window.clearTimeout(timer)
+  }, [pathname])
 
   const clampOffset = useCallback((next: number) => {
     const el = dockRef.current
@@ -88,8 +105,8 @@ export function GlobalCoachDock() {
     event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
-  if (pathname === '/') return null
-  if (!mounted) return null
+  if (pathname === '/' || pathname === '/home') return null
+  if (!mounted || !shouldLoadCoach) return null
 
   return (
     <div

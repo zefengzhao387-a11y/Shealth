@@ -301,7 +301,7 @@ function WorkoutPlayer({ course, onClose }: { course: Course; onClose: () => voi
               <motion.div className="absolute -bottom-12 -right-12 w-48 h-48 rounded-full bg-white/10" animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 4, repeat: Infinity }} />
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <div className="text-center text-white/90">
-                  <p className="text-4xl font-bold mb-1">{course.durationMinutes}'</p>
+                  <p className="text-4xl font-bold mb-1">{course.durationMinutes}′</p>
                   <p className="text-sm">{course.difficulty}</p>
                 </div>
               </div>

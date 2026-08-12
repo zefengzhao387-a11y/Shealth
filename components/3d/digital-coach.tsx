@@ -1173,7 +1173,7 @@ function VRMScene({
       setNormalizedPose: (pose: Record<string, { rotation?: [number, number, number, number] }>) => void
       update: () => void
     }
-    expressionManager?: { setValue: (n: string, v: number) => void }
+    expressionManager?: { setValue: (n: string, v: number) => void; update: () => void }
   } | null>(null)
   const idleRestRef = useRef<IdleRestPose | null>(null)
   const restClipRef = useRef<THREE.AnimationClip | null>(null)

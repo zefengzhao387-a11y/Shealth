@@ -1,7 +1,7 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
-import { useState, useEffect, useRef } from "react"
+import { useCallback, useState, useEffect } from "react"
 import { Navigation } from "@/components/shared/navigation"
 import { BloomAnimation, BackgroundEffects } from "@/components/shared/effects"
 import { supabase } from "@/lib/supabase"
@@ -11,6 +11,7 @@ import { getDisplayName } from "@/lib/display-name"
 import { TAP_SPRING } from "@/lib/motion-presets"
 import { ResponsiveBottomSheet } from "@/components/shared/responsive-bottom-sheet"
 import { AppPageHeader } from "@/components/shared/app-page-header"
+import { getFriendlyNetworkError, withTimeout } from "@/lib/async-utils"
 
 const TOPICS = [
   { id: "1", name: "21天温柔饮食", count: "2.3k", gradient: "from-peach/50 to-primary/40", emoji: "🍭" },
@@ -189,7 +190,7 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
 
   return (
     <motion.div
-      className="premium-card rounded-2xl overflow-hidden mb-3"
+      className="community-post-card premium-card rounded-2xl overflow-hidden mb-3"
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.05, 0.3) }}
     >
@@ -508,74 +509,89 @@ export default function CommunityPage() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [showCreatePost, setShowCreatePost] = useState(false)
   const [composeTag, setComposeTag] = useState<string | undefined>(undefined)
 
-  const fetchPage = async (offset: number, replace: boolean) => {
+  const fetchPage = useCallback(async (offset: number, replace: boolean) => {
     if (offset === 0) setLoading(true); else setLoadingMore(true)
+    setLoadError('')
 
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + PAGE_SIZE - 1)
+    try {
+      const { data, error } = await withTimeout(
+        supabase
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(offset, offset + PAGE_SIZE - 1),
+        12_000,
+        '社区连接超时，请稍后重试',
+      )
 
-    if (error) console.error('[community] fetchPosts error:', error.code, error.message)
+      if (error) throw new Error(error.message)
 
-    const newPosts = (data ?? []) as any[]
-    setHasMore(newPosts.length === PAGE_SIZE)
+      const newPosts = (data ?? []) as any[]
+      setHasMore(newPosts.length === PAGE_SIZE)
 
-    if (newPosts.length > 0) {
-      const postIds = newPosts.map(p => p.id)
-      const userIds = Array.from(new Set(newPosts.map(p => p.user_id)))
+      if (newPosts.length > 0) {
+        const postIds = newPosts.map(p => p.id)
+        const userIds = Array.from(new Set(newPosts.map(p => p.user_id)))
 
-      // 并行查 displayName、评论数、当前用户点赞
-      const [profilesRes, commentsRes, likesRes, likesCountRes] = await Promise.all([
-        supabase.from('profiles').select('id, username, displayname, display_name').in('id', userIds),
-        supabase.from('comments').select('post_id').in('post_id', postIds),
-        user
-          ? supabase.from('post_likes').select('post_id').eq('user_id', user.id).in('post_id', postIds)
-          : Promise.resolve({ data: [] as { post_id: string }[] }),
-        supabase.from('post_likes').select('post_id').in('post_id', postIds),
-      ])
+        // 独立查询并行执行，避免帖子元数据产生串行瀑布。
+        const [profilesRes, commentsRes, likesRes, likesCountRes] = await withTimeout(
+          Promise.all([
+            supabase.from('profiles').select('id, username, displayname, display_name').in('id', userIds),
+            supabase.from('comments').select('post_id').in('post_id', postIds),
+            user
+              ? supabase.from('post_likes').select('post_id').eq('user_id', user.id).in('post_id', postIds)
+              : Promise.resolve({ data: [] as { post_id: string }[] }),
+            supabase.from('post_likes').select('post_id').in('post_id', postIds),
+          ]),
+          12_000,
+          '社区内容加载超时，请稍后重试',
+        )
 
-      const nameMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, getDisplayName(p)]))
-      const profileMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]))
-      const commentCount: Record<string, number> = {}
-      ;(commentsRes.data ?? []).forEach((c: any) => {
-        commentCount[c.post_id] = (commentCount[c.post_id] ?? 0) + 1
-      })
-      const likedSet = new Set((likesRes.data ?? []).map((l: any) => l.post_id))
-      const likeCount: Record<string, number> = {}
-      ;(likesCountRes.data ?? []).forEach((l: any) => {
-        likeCount[l.post_id] = (likeCount[l.post_id] ?? 0) + 1
-      })
+        const nameMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, getDisplayName(p)]))
+        const profileMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]))
+        const commentCount: Record<string, number> = {}
+        ;(commentsRes.data ?? []).forEach((c: any) => {
+          commentCount[c.post_id] = (commentCount[c.post_id] ?? 0) + 1
+        })
+        const likedSet = new Set((likesRes.data ?? []).map((l: any) => l.post_id))
+        const likeCount: Record<string, number> = {}
+        ;(likesCountRes.data ?? []).forEach((l: any) => {
+          likeCount[l.post_id] = (likeCount[l.post_id] ?? 0) + 1
+        })
 
-      const enriched = newPosts.map(p => {
-        const prof = profileMap.get(p.user_id)
-        return {
-          ...p,
-          username: prof?.username ?? null,
-          displayname: nameMap.get(p.user_id) ?? prof?.displayname ?? null,
-          display_name: prof?.display_name ?? null,
-          comments_count: commentCount[p.id] ?? 0,
-          likes_count: likeCount[p.id] ?? 0,
-          liked: likedSet.has(p.id),
-        }
-      })
-      setPosts(prev => replace ? enriched : [...prev, ...enriched])
-    } else {
-      if (replace) setPosts([])
+        const enriched = newPosts.map(p => {
+          const prof = profileMap.get(p.user_id)
+          return {
+            ...p,
+            username: prof?.username ?? null,
+            displayname: nameMap.get(p.user_id) ?? prof?.displayname ?? null,
+            display_name: prof?.display_name ?? null,
+            comments_count: commentCount[p.id] ?? 0,
+            likes_count: likeCount[p.id] ?? 0,
+            liked: likedSet.has(p.id),
+          }
+        })
+        setPosts(prev => replace ? enriched : [...prev, ...enriched])
+      } else if (replace) {
+        setPosts([])
+      }
+    } catch (error) {
+      console.error('[community] fetchPosts failed:', error)
+      setLoadError(getFriendlyNetworkError(error, '社区暂时无法连接，请稍后重试'))
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
     }
+  }, [user])
 
-    setLoading(false)
-    setLoadingMore(false)
-  }
-
-  const fetchPosts = () => fetchPage(0, true)
+  const fetchPosts = useCallback(() => fetchPage(0, true), [fetchPage])
 
   useEffect(() => { setMounted(true) }, [])
-  useEffect(() => { if (mounted) fetchPosts() }, [mounted, user])
+  useEffect(() => { if (mounted) void fetchPosts() }, [mounted, fetchPosts])
 
   if (!mounted) return <div className="min-h-screen app-shell" />
 
@@ -680,6 +696,24 @@ export default function CommunityPage() {
                 </div>
               ))}
             </div>
+          ) : loadError && posts.length === 0 ? (
+            <motion.div
+              className="premium-card rounded-[1.4rem] px-6 py-10 text-center"
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              role="alert"
+            >
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/12 text-2xl">↻</div>
+              <p className="mb-2 font-medium text-foreground">暂时没有连上繁花社区</p>
+              <p className="mx-auto mb-5 max-w-sm text-sm leading-relaxed text-muted-foreground">{loadError}</p>
+              <motion.button
+                type="button"
+                className="rounded-full bg-primary/16 px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-primary/24"
+                onClick={() => void fetchPosts()}
+                whileTap={{ scale: 0.97 }}
+              >
+                重新加载
+              </motion.button>
+            </motion.div>
           ) : posts.length === 0 ? (
             <motion.div className="text-center py-16" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div className="text-5xl mb-4">🌸</div>

@@ -19,6 +19,7 @@ type SpringBoneJointInternal = {
 
 export type SpringBoneManagerLike = {
   joints: Set<SpringBoneJointInternal>
+  update: (delta: number) => void
 }
 
 const _pokeRay = new THREE.Raycaster()

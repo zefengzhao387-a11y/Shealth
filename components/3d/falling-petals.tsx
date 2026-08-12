@@ -24,6 +24,13 @@ const PETAL_PRESETS = {
 
 export type FallingPetalsVariant = keyof typeof PETAL_PRESETS
 
+export type FallingPetalBounds = {
+  x: number
+  yMin: number
+  yTop: number
+  z: number
+}
+
 function textureFromPetalImage(image: HTMLImageElement): THREE.CanvasTexture {
   const canvas = document.createElement('canvas')
   canvas.width = image.width
@@ -72,7 +79,7 @@ type PetalState = {
 function spawnPetal(
   i: number,
   state: PetalState,
-  bounds: (typeof PETAL_PRESETS)[FallingPetalsVariant]['bounds'],
+  bounds: FallingPetalBounds,
 ) {
   state.baseX[i] = (Math.random() - 0.5) * bounds.x
   state.baseY[i] = bounds.yMin + Math.random() * (bounds.yTop - bounds.yMin)
@@ -82,7 +89,7 @@ function spawnPetal(
   state.scale[i] = 0.7 + Math.random() * 0.65
 }
 
-function initPetalState(count: number, bounds: (typeof PETAL_PRESETS)[FallingPetalsVariant]['bounds']): PetalState {
+function initPetalState(count: number, bounds: FallingPetalBounds): PetalState {
   const state: PetalState = {
     baseX: new Float32Array(count),
     baseY: new Float32Array(count),
@@ -104,7 +111,7 @@ export function FallingPetals({
   count: countOverride,
 }: {
   variant?: FallingPetalsVariant
-  bounds?: (typeof PETAL_PRESETS)[FallingPetalsVariant]['bounds']
+  bounds?: FallingPetalBounds
   count?: number
 }) {
   const preset = PETAL_PRESETS[variant]
