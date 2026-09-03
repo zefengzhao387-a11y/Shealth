@@ -14,6 +14,16 @@ __v0_jsx-dev-runtime.ts
 node_modules
 .next/
 .DS_Store
+.codex-dev*.log
+.cursor/
+tsconfig.tsbuildinfo
+
+# Local 3D authoring/source files (runtime assets live under public/)
+/*.fbx
+/*.vrm
+/*.glb
+/*.blend
+/*.vroid
 
 # Capacitor native build artifacts
 android/.gradle/

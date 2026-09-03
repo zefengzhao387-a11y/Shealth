@@ -7,10 +7,12 @@ import { useState } from "react"
 import PillNav from "@/components/PillNav/PillNav"
 import { useAuth } from "@/contexts/auth-context"
 import { getDisplayName } from "@/lib/display-name"
+import { LocationPicker } from "@/components/shared/location-picker"
 
 const APP_NAV_ITEMS = [
   { label: "灵息", href: "/home" },
   { label: "悦动", href: "/workout" },
+  { label: "花集", href: "/shop" },
   { label: "繁花", href: "/community" },
   { label: "镜心", href: "/profile" },
 ] as const
@@ -34,53 +36,57 @@ function NavAuthActions() {
   }
 
   return (
-    <div className="relative flex-shrink-0 pt-0.5">
-      <motion.button
-        className="app-chip flex min-h-11 items-center gap-2 px-3 py-1.5"
-        onClick={() => setShowUserMenu(!showUserMenu)}
-        aria-expanded={showUserMenu}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-      >
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary">
-          <svg className="h-3.5 w-3.5 text-primary-foreground" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="8" r="4" />
-            <path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" />
-          </svg>
-        </div>
-        <span className="max-w-[72px] truncate text-sm text-foreground/85 md:max-w-[88px]">{displayName}</span>
-      </motion.button>
+    <div className="flex flex-shrink-0 items-start gap-[80px]">
+      <LocationPicker />
 
-      <AnimatePresence>
-        {showUserMenu && (
-          <>
-            <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
-            <motion.div
-              className="absolute right-0 top-full z-20 mt-2 w-40 overflow-hidden rounded-2xl glass shadow-xl"
-              initial={{ opacity: 0, y: -8, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.95 }}
-            >
-              <Link
-                href="/profile"
-                className="flex items-center gap-2 px-4 py-3 text-sm text-foreground transition-colors hover:bg-muted/50"
-                onClick={() => setShowUserMenu(false)}
+      <div className="relative flex-shrink-0 pt-0.5">
+        <motion.button
+          className="app-chip flex min-h-11 items-center gap-2 px-3 py-1.5"
+          onClick={() => setShowUserMenu(!showUserMenu)}
+          aria-expanded={showUserMenu}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary">
+            <svg className="h-3.5 w-3.5 text-primary-foreground" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M12 14c-4 0-7 2-7 5v1h14v-1c0-3-3-5-7-5z" />
+            </svg>
+          </div>
+          <span className="max-w-[72px] truncate text-sm text-foreground/85 md:max-w-[88px]">{displayName}</span>
+        </motion.button>
+
+        <AnimatePresence>
+          {showUserMenu && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
+              <motion.div
+                className="absolute right-0 top-full z-20 mt-2 w-40 overflow-hidden rounded-2xl glass shadow-xl"
+                initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.95 }}
               >
-                个人主页
-              </Link>
-              <button
-                className="flex w-full items-center gap-2 border-t border-border/30 px-4 py-3 text-sm text-destructive transition-colors hover:bg-muted/50"
-                onClick={() => {
-                  signOut()
-                  setShowUserMenu(false)
-                }}
-              >
-                退出登录
-              </button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-2 px-4 py-3 text-sm text-foreground transition-colors hover:bg-muted/50"
+                  onClick={() => setShowUserMenu(false)}
+                >
+                  个人主页
+                </Link>
+                <button
+                  className="flex w-full items-center gap-2 border-t border-border/30 px-4 py-3 text-sm text-destructive transition-colors hover:bg-muted/50"
+                  onClick={() => {
+                    signOut()
+                    setShowUserMenu(false)
+                  }}
+                >
+                  退出登录
+                </button>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }

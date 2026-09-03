@@ -13,6 +13,7 @@ import { BackgroundEffects } from "@/components/shared/effects"
 import { getDisplayName } from "@/lib/display-name"
 import { TAP_SPRING } from "@/lib/motion-presets"
 import { ResponsiveBottomSheet } from "@/components/shared/responsive-bottom-sheet"
+import { PeriodTracker } from "@/components/profile/period-tracker"
 
 // 成就定义
 const ACHIEVEMENTS = [
@@ -818,6 +819,8 @@ export default function ProfilePage() {
               </div>
             </div>
           </motion.div>
+
+          <PeriodTracker userId={user.id} />
 
           {/* 维度数据 */}
           <motion.div className="mb-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>

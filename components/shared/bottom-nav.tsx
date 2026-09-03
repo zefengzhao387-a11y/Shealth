@@ -34,6 +34,17 @@ const navItems = [
     ),
   },
   {
+    label: "花集",
+    href: "/shop",
+    icon: (active: boolean) => (
+      <svg className={`w-6 h-6 ${active ? "text-primary" : "text-muted-foreground"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M6 8h12l-1 13H7L6 8Z" />
+        <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+        <path d="M9.5 12h.01M14.5 12h.01" />
+      </svg>
+    ),
+  },
+  {
     label: "繁花",
     href: "/community",
     icon: (active: boolean) => (

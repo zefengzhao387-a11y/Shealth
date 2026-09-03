@@ -2,7 +2,7 @@
 
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useRef } from 'react'
 import TextType from '@/components/TextType/TextType'
 import BlurText from '@/components/BlurText/BlurText'
@@ -11,6 +11,7 @@ import ShinyText from '@/components/ShinyText/ShinyText'
 import Shuffle from '@/components/Shuffle/Shuffle'
 import StarBorder from '@/components/StarBorder/StarBorder'
 import { LandingHeroCarousel } from '@/components/landing/landing-hero-carousel'
+import { useAuth } from '@/contexts/auth-context'
 
 gsap.registerPlugin(useGSAP)
 
@@ -22,6 +23,17 @@ const HERO_TYPE_LINES = [
 
 export function LandingHero() {
   const sectionRef = useRef<HTMLElement>(null)
+  const router = useRouter()
+  const { user, loading, openAuthModal } = useAuth()
+
+  const handleStart = () => {
+    if (loading) return
+    if (user) {
+      router.push('/onboarding')
+      return
+    }
+    openAuthModal('/onboarding')
+  }
 
   useGSAP(
     () => {
@@ -70,7 +82,7 @@ export function LandingHero() {
 
           <h1 className="landing-readable m-0">
             <Shuffle
-              text="Spirit Breath"
+              text="Shealth"
               tag="span"
               className="landing-hero-shuffle"
               textAlign="left"
@@ -114,7 +126,13 @@ export function LandingHero() {
           />
 
           <div data-hero-item className="mt-10">
-            <Link href="/home" className="star-border-link">
+            <button
+              type="button"
+              className="star-border-link border-0 bg-transparent p-0 disabled:cursor-wait disabled:opacity-70"
+              onClick={handleStart}
+              disabled={loading}
+              aria-label={user ? '进入 Shealth' : '登录后进入 Shealth'}
+            >
               <StarBorder
                 as="span"
                 className="star-border--landing"
@@ -131,7 +149,7 @@ export function LandingHero() {
                   parentClassName="inline-block"
                 />
               </StarBorder>
-            </Link>
+            </button>
           </div>
         </div>
 

@@ -13,6 +13,9 @@ import { TAP_SPRING } from "@/lib/motion-presets"
 import { DEFAULT_OUTFIT_ID, type CoachOutfitId } from "@/lib/coach-outfit"
 import { playCoachSpeech, stopCoachSpeech } from "@/lib/coach-tts"
 import { DigitalCoachLoading } from "@/components/coach/digital-coach-loading"
+import { useAuth } from "@/contexts/auth-context"
+import { DEFAULT_COMPANION_PREFERENCES, readCompanionPreferences } from "@/lib/companion-preferences"
+import { CompanionCallDock } from "@/components/coach/companion-call-dock"
 
 const DigitalCoach = dynamic(
   () => import("@/components/3d/digital-coach").then((m) => m.DigitalCoach),
@@ -99,9 +102,11 @@ function UserChatBubble({ msg }: { msg: UserChatMsg }) {
 function AIInput({
   onSend,
   thinking,
+  companionName,
 }: {
   onSend: (text: string) => Promise<void>
   thinking: boolean
+  companionName: string
 }) {
   const [msg, setMsg] = useState("")
   const [focused, setFocused] = useState(false)
@@ -125,8 +130,8 @@ function AIInput({
             type="text"
             value={msg}
             onChange={(e) => setMsg(e.target.value)}
-            placeholder="和灵息说点什么..."
-            aria-label="发消息给灵息"
+            placeholder={`和${companionName}说点什么...`}
+            aria-label={`发消息给${companionName}`}
             className="flex-1 min-h-11 bg-transparent border-none outline-none text-sm md:text-base text-foreground placeholder:text-muted-foreground"
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
@@ -149,11 +154,14 @@ function AIInput({
 }
 
 export default function HomePage() {
+  const { user } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [thinking, setThinking] = useState(false)
   const [error, setError] = useState("")
   const [userMessages, setUserMessages] = useState<UserChatMsg[]>([])
   const [outfitId, setOutfitId] = useState<CoachOutfitId>(DEFAULT_OUTFIT_ID)
+  const [companionName, setCompanionName] = useState('灵息')
+  const [companionPreferences, setCompanionPreferences] = useState(() => DEFAULT_COMPANION_PREFERENCES)
   const [coachSpeech, setCoachSpeech] = useState<CoachSpeechCue | null>(null)
   const [bubbleText, setBubbleText] = useState<string | null>(null)
   const [subtitleProgress, setSubtitleProgress] = useState(1)
@@ -211,6 +219,14 @@ export default function HomePage() {
   }, [])
 
   useEffect(() => {
+    if (!user) return
+    const saved = readCompanionPreferences(user.id, user.user_metadata)
+    setCompanionPreferences(saved)
+    setCompanionName(saved.name)
+    setOutfitId(saved.outfitId)
+  }, [user])
+
+  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
@@ -254,7 +270,7 @@ export default function HomePage() {
       const res = await fetch("/api/ai-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: content }),
+        body: JSON.stringify({ message: content, companionPreferences }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -301,6 +317,7 @@ export default function HomePage() {
 
       <FallingPetalsScreen />
       <Navigation />
+      <CompanionCallDock companionName={companionName} />
 
       <div className="relative z-10 flex min-h-0 flex-1 flex-col pt-[calc(env(safe-area-inset-top,0px)+4.5rem)] md:pt-[calc(env(safe-area-inset-top,0px)+4rem)]">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center px-3 sm:px-4 md:px-6">
@@ -342,7 +359,7 @@ export default function HomePage() {
               {coachReady ? (
                 <div className="absolute bottom-1 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full app-chip px-3 py-1 text-[11px] text-foreground/80">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-                  灵息在线
+                  {companionName}在线
                 </div>
               ) : null}
             </div>
@@ -374,7 +391,7 @@ export default function HomePage() {
             >
               <HomeEmptyPrompt
                 greeting={greeting}
-                subtitle="我是灵息，你的 3D 健康陪伴。运动、经期、情绪与休息，都可以慢慢跟我聊 ✨"
+                subtitle={`我是${companionName}，你的 3D 健康陪伴。运动、经期、情绪与休息，都可以慢慢跟我聊 ✨`}
                 questions={QUICK_QUESTIONS}
                 onSelect={handleSend}
               />
@@ -413,7 +430,7 @@ export default function HomePage() {
         </AnimatePresence>
 
         <div className="flex-shrink-0 pt-3">
-          <AIInput onSend={handleSend} thinking={thinking} />
+          <AIInput onSend={handleSend} thinking={thinking} companionName={companionName} />
           {hasMessages && (
             <QuickQuestionRow questions={QUICK_QUESTIONS} onSelect={handleSend} />
           )}

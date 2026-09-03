@@ -12,6 +12,13 @@ import { TAP_SPRING } from "@/lib/motion-presets"
 import { ResponsiveBottomSheet } from "@/components/shared/responsive-bottom-sheet"
 import { AppPageHeader } from "@/components/shared/app-page-header"
 import { getFriendlyNetworkError, withTimeout } from "@/lib/async-utils"
+import {
+  COMMUNITY_MEDIA_ACCEPT,
+  removeCommunityMedia,
+  uploadCommunityMedia,
+  validateCommunityMedia,
+  type CommunityMediaType,
+} from "@/lib/community-media"
 
 const TOPICS = [
   { id: "1", name: "21天温柔饮食", count: "2.3k", gradient: "from-peach/50 to-primary/40", emoji: "🍭" },
@@ -48,6 +55,83 @@ function UserAvatar({ seed, size = 10 }: { seed: string; size?: number }) {
   )
 }
 
+function useObjectUrl(file: File | null) {
+  const [url, setUrl] = useState('')
+  useEffect(() => {
+    if (!file) { setUrl(''); return }
+    const nextUrl = URL.createObjectURL(file)
+    setUrl(nextUrl)
+    return () => URL.revokeObjectURL(nextUrl)
+  }, [file])
+  return url
+}
+
+function MediaContent({ url, type, className = '' }: { url: string; type: CommunityMediaType; className?: string }) {
+  if (type === 'video') {
+    return <video src={url} controls playsInline preload="metadata" className={`h-full w-full bg-black/70 object-cover ${className}`} />
+  }
+  // User-generated URLs come from the configured Supabase bucket at runtime.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt="动态附件" loading="lazy" className={`h-full w-full object-cover ${className}`} />
+}
+
+function MediaPicker({
+  id,
+  file,
+  onChange,
+  onError,
+  compact = false,
+}: {
+  id: string
+  file: File | null
+  onChange: (file: File | null) => void
+  onError: (message: string) => void
+  compact?: boolean
+}) {
+  const previewUrl = useObjectUrl(file)
+  const mediaType = file ? (file.type.startsWith('video/') ? 'video' : 'image') : null
+
+  const chooseFile = (nextFile?: File) => {
+    if (!nextFile) return
+    try {
+      validateCommunityMedia(nextFile)
+      onError('')
+      onChange(nextFile)
+    } catch (error) {
+      onError(error instanceof Error ? error.message : '无法读取这个文件')
+    }
+  }
+
+  return (
+    <div className={compact ? '' : 'mt-3'}>
+      {file && previewUrl && mediaType ? (
+        <div className={`relative overflow-hidden rounded-2xl border border-border/40 bg-muted/30 ${compact ? 'mb-2 h-28' : 'aspect-video'}`}>
+          <MediaContent url={previewUrl} type={mediaType} />
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-sm text-white backdrop-blur-sm"
+            aria-label="移除附件"
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
+      <label htmlFor={id} className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border/45 bg-card/80 text-muted-foreground transition-colors hover:text-foreground ${compact ? 'h-8 w-8 justify-center' : 'min-h-11 px-4 py-2 text-xs'}`}>
+        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9" r="1.5"/><path d="m5 18 4.5-4.5 3 3 2-2L19 18"/></svg>
+        {compact ? null : <span>{file ? '更换图片或视频' : '添加图片或视频'}</span>}
+      </label>
+      <input
+        id={id}
+        type="file"
+        accept={COMMUNITY_MEDIA_ACCEPT}
+        className="sr-only"
+        onChange={(event) => { chooseFile(event.target.files?.[0]); event.currentTarget.value = '' }}
+      />
+    </div>
+  )
+}
+
 // 帖子卡片
 interface PostWithMeta extends Post {
   username?: string | null
@@ -70,6 +154,8 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<(Comment & { username?: string | null; displayname?: string | null; display_name?: string | null })[]>([])
   const [commentText, setCommentText] = useState('')
+  const [commentMedia, setCommentMedia] = useState<File | null>(null)
+  const [commentError, setCommentError] = useState('')
   const [posting, setPosting] = useState(false)
   const [showDM, setShowDM] = useState(false)
   const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'accepted'>('none')
@@ -166,31 +252,52 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
   const submitComment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) { onRequireAuth(); return }
-    if (!commentText.trim() || posting) return
+    if ((!commentText.trim() && !commentMedia) || posting) return
     setPosting(true)
-    const { data } = await supabase.from('comments').insert({
-      user_id: user.id, post_id: post.id, content: commentText.trim(),
-    }).select('*').single()
-    if (data) {
-      setComments(prev => [...prev, {
-        ...(data as Comment),
-        displayname: profile?.displayname ?? null,
-        display_name: profile?.display_name ?? null,
-        username: profile?.username ?? null,
-      }])
-      setCommentsCount(c => c + 1)
+    setCommentError('')
+    let uploadedPath = ''
+    try {
+      const media = commentMedia ? await uploadCommunityMedia(commentMedia, user.id, 'comments') : null
+      uploadedPath = media?.objectPath ?? ''
+      const { data, error } = await supabase.from('comments').insert({
+        user_id: user.id,
+        post_id: post.id,
+        content: commentText.trim(),
+        media_url: media?.mediaUrl ?? null,
+        media_type: media?.mediaType ?? null,
+      }).select('*').single()
+      if (error) throw error
+      if (data) {
+        setComments(prev => [...prev, {
+          ...(data as Comment),
+          displayname: profile?.displayname ?? null,
+          display_name: profile?.display_name ?? null,
+          username: profile?.username ?? null,
+        }])
+        setCommentsCount(c => c + 1)
+      }
+      setCommentText('')
+      setCommentMedia(null)
+    } catch (error) {
+      if (uploadedPath) await removeCommunityMedia(uploadedPath)
+      console.error('[community] comment failed:', error)
+      setCommentError(error instanceof Error && /bucket|column|schema/i.test(error.message)
+        ? '媒体功能尚未在 Supabase 中启用'
+        : '评论发送失败，请重试')
+    } finally {
+      setPosting(false)
     }
-    setCommentText('')
-    setPosting(false)
   }
 
   const username = getDisplayName(post)
   const authorSeed = post.user_id
   const tags = extractTags(post.content)
+  const postMediaUrl = post.media_url ?? post.image_url
+  const postMediaType: CommunityMediaType | null = post.media_type ?? (post.image_url ? 'image' : null)
 
   return (
     <motion.div
-      className="community-post-card premium-card rounded-2xl overflow-hidden mb-3"
+      className="community-post-card premium-card h-fit overflow-hidden rounded-2xl"
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.05, 0.3) }}
     >
@@ -237,9 +344,9 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
       </div>
 
       {/* 图片 */}
-      {post.image_url && (
+      {postMediaUrl && postMediaType && (
         <div className="aspect-[4/3] bg-gradient-to-br from-primary/15 to-secondary/10">
-          <img src={post.image_url} alt="" className="w-full h-full object-cover" />
+          <MediaContent url={postMediaUrl} type={postMediaType} />
         </div>
       )}
 
@@ -309,26 +416,37 @@ function PostCard({ post, index, onRequireAuth }: { post: PostWithMeta; index: n
                 <UserAvatar seed={c.user_id} size={6} />
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] font-medium text-foreground mb-0.5">{getDisplayName(c)}</p>
-                  <p className="text-[13px] text-foreground/85 leading-snug break-words">{c.content}</p>
+                  {c.content ? <p className="text-[13px] text-foreground/85 leading-snug break-words">{c.content}</p> : null}
+                  {c.media_url && c.media_type ? (
+                    <div className="mt-2 aspect-video max-w-xs overflow-hidden rounded-xl border border-border/40 bg-muted/30">
+                      <MediaContent url={c.media_url} type={c.media_type} />
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ))}
-            <form onSubmit={submitComment} className="flex gap-2 pt-2">
-              <UserAvatar seed={user?.id ?? 'anon'} size={7} />
-              <input
-                type="text"
-                value={commentText}
-                onChange={e => setCommentText(e.target.value)}
-                placeholder={user ? "说点什么..." : "登录后发表评论"}
-                onClick={!user ? onRequireAuth : undefined}
-                readOnly={!user}
-                className="flex-1 px-3.5 py-2 rounded-full bg-card text-[13px] text-foreground placeholder:text-muted-foreground outline-none border border-border/40 focus:border-primary/40 transition-colors min-w-0"
-              />
-              {user && (
-                <motion.button type="submit" disabled={posting || !commentText.trim()} className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0 disabled:opacity-40" whileTap={{ scale: 0.9 }}>
-                  <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
-                </motion.button>
-              )}
+            <form onSubmit={submitComment} className="pt-2">
+              {user ? (
+                <MediaPicker id={`comment-media-${post.id}`} file={commentMedia} onChange={setCommentMedia} onError={setCommentError} compact />
+              ) : null}
+              <div className="flex gap-2">
+                <UserAvatar seed={user?.id ?? 'anon'} size={7} />
+                <input
+                  type="text"
+                  value={commentText}
+                  onChange={e => setCommentText(e.target.value)}
+                  placeholder={user ? "说点什么..." : "登录后发表评论"}
+                  onClick={!user ? onRequireAuth : undefined}
+                  readOnly={!user}
+                  className="flex-1 px-3.5 py-2 rounded-full bg-card text-[13px] text-foreground placeholder:text-muted-foreground outline-none border border-border/40 focus:border-primary/40 transition-colors min-w-0"
+                />
+                {user && (
+                  <motion.button type="submit" disabled={posting || (!commentText.trim() && !commentMedia)} className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0 disabled:opacity-40" whileTap={{ scale: 0.9 }} aria-label="发送评论">
+                    <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
+                  </motion.button>
+                )}
+              </div>
+              {commentError ? <p className="mt-1.5 pl-10 text-[11px] text-destructive">{commentError}</p> : null}
             </form>
           </motion.div>
         )}
@@ -437,12 +555,14 @@ function CreatePostModal({
   const { user } = useAuth()
   const initialTag = typeof defaultTag === 'string' && defaultTag.trim().startsWith('#') ? defaultTag.trim() : ''
   const [content, setContent] = useState(initialTag ? `${initialTag} ` : '')
+  const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
     if (open) {
       setContent(initialTag ? `${initialTag} ` : '')
+      setMediaFile(null)
       setError('')
       setPosting(false)
     }
@@ -450,20 +570,32 @@ function CreatePostModal({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!content.trim() || !user || posting) return
+    if ((!content.trim() && !mediaFile) || !user || posting) return
     setPosting(true)
-    const { error: insertError } = await supabase.from('posts').insert({
-      user_id: user.id,
-      content: content.trim(),
-      likes_count: 0,
-    })
-    if (insertError) {
-      setError('发布失败，请重试')
+    setError('')
+    let uploadedPath = ''
+    try {
+      const media = mediaFile ? await uploadCommunityMedia(mediaFile, user.id, 'posts') : null
+      uploadedPath = media?.objectPath ?? ''
+      const { error: insertError } = await supabase.from('posts').insert({
+        user_id: user.id,
+        content: content.trim(),
+        likes_count: 0,
+        media_url: media?.mediaUrl ?? null,
+        media_type: media?.mediaType ?? null,
+      })
+      if (insertError) throw insertError
+      onPosted()
+      onClose()
+    } catch (submitError) {
+      if (uploadedPath) await removeCommunityMedia(uploadedPath)
+      console.error('[community] create post failed:', submitError)
+      setError(submitError instanceof Error && /bucket|column|schema/i.test(submitError.message)
+        ? '媒体功能尚未在 Supabase 中启用'
+        : '发布失败，请重试')
+    } finally {
       setPosting(false)
-      return
     }
-    onPosted()
-    onClose()
   }
 
   return (
@@ -483,16 +615,18 @@ function CreatePostModal({
           className="w-full min-h-[140px] px-4 py-3 rounded-2xl bg-muted/60 border border-border/30 outline-none text-sm text-foreground placeholder:text-muted-foreground resize-none focus:border-primary/40 transition-colors"
           autoFocus
         />
+        <MediaPicker id="create-post-media" file={mediaFile} onChange={setMediaFile} onError={setError} />
+        <p className="mt-2 text-[11px] text-muted-foreground">图片最大 6MB；视频支持 MP4、WebM，最大 30MB</p>
         {error && <p className="text-xs text-destructive mt-2">{error}</p>}
         <div className="flex items-center justify-between mt-4 gap-3">
           <span className="text-xs text-muted-foreground">{content.length}/500</span>
           <motion.button
             type="submit"
-            disabled={posting || !content.trim()}
+            disabled={posting || (!content.trim() && !mediaFile)}
             className="touch-target min-h-12 px-6 py-3 rounded-full bg-gradient-to-r from-primary to-secondary text-primary-foreground text-sm font-medium disabled:opacity-50"
             whileTap={TAP_SPRING}
           >
-            {posting ? '发布中...' : '发布'}
+            {posting ? '正在上传并发布...' : '发布'}
           </motion.button>
         </div>
       </form>
@@ -608,7 +742,7 @@ export default function CommunityPage() {
       <Navigation />
 
       <div className="relative z-10 pt-24 md:pt-16 mobile-shell">
-        <div className="max-w-2xl mx-auto">
+        <div className="mx-auto max-w-5xl">
           <div className="mb-5 flex items-end justify-between px-1">
             <AppPageHeader
               kicker="Community"
@@ -678,9 +812,9 @@ export default function CommunityPage() {
 
           {/* 帖子列表 */}
           {loading && posts.length === 0 ? (
-            <div className="space-y-3">
+            <div className="columns-1 gap-4 md:columns-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-card/70 border border-border/30 rounded-2xl p-4 overflow-hidden relative">
+                <div key={i} className="relative mb-4 break-inside-avoid overflow-hidden rounded-2xl border border-border/30 bg-card/70 p-4">
                   <div className="absolute inset-0 shimmer" />
                   <div className="flex gap-3 mb-3">
                     <div className="w-9 h-9 rounded-full bg-muted/60" />
@@ -728,13 +862,26 @@ export default function CommunityPage() {
               </motion.button>
             </motion.div>
           ) : (
-            <div>
-              {posts.map((post, i) => (
-                <PostCard key={post.id} post={post as any} index={i} onRequireAuth={openAuthModal} />
-              ))}
+            <>
+              <div className="space-y-4 md:hidden">
+                {posts.map((post, i) => (
+                  <div key={post.id}>
+                    <PostCard post={post as any} index={i} onRequireAuth={openAuthModal} />
+                  </div>
+                ))}
+              </div>
+              <div className="hidden items-start gap-4 md:grid md:grid-cols-2">
+                {[0, 1].map((column) => (
+                  <div key={column} className="space-y-4">
+                    {posts.map((post, index) => index % 2 === column ? (
+                      <PostCard key={post.id} post={post as any} index={index} onRequireAuth={openAuthModal} />
+                    ) : null)}
+                  </div>
+                ))}
+              </div>
               {/* 加载更多 */}
               {hasMore && (
-                <div className="flex justify-center mt-2 mb-4">
+                <div className="mb-4 flex justify-center pt-2">
                   <motion.button
                     onClick={() => fetchPage(posts.length, false)}
                     disabled={loadingMore}
@@ -746,7 +893,7 @@ export default function CommunityPage() {
                   </motion.button>
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
       </div>

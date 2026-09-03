@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/shared/bottom-nav"
 import { GlobalCoachDock } from "@/components/coach/global-coach-dock"
 import { CapacitorInit } from "@/components/shared/capacitor-init"
 import ClickSpark from "@/components/ClickSpark/ClickSpark"
+import { FeedbackDialog } from "@/components/shared/feedback-dialog"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -26,6 +27,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {children}
           </div>
           <GlobalCoachDock />
+          <FeedbackDialog />
           <AuthModal />
           <PointsPopup />
           <BottomNav />

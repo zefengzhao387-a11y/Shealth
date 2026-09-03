@@ -5,6 +5,34 @@ const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models
 const GEMINI_FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro-latest"]
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
 
+type ClientCompanionPreferences = {
+  name?: string
+  tone?: 'gentle' | 'cheerful' | 'calm'
+  focuses?: Array<'movement' | 'cycle' | 'emotion' | 'sleep'>
+}
+
+function buildSystemPrompt(preferences?: ClientCompanionPreferences) {
+  const name = preferences?.name?.trim().slice(0, 12) || '灵息'
+  const toneMap = {
+    gentle: '先理解感受，再温柔地给出建议',
+    cheerful: '语气明亮、有活力，用轻松但不过度兴奋的方式鼓励行动',
+    calm: '表达冷静、简洁、有条理，不过度打扰',
+  }
+  const focusMap = {
+    movement: '舒缓运动与身体状态',
+    cycle: '经期照护',
+    emotion: '情绪安放与自我关怀',
+    sleep: '睡眠与休息恢复',
+  }
+  const focuses = preferences?.focuses
+    ?.filter((focus) => focus in focusMap)
+    .slice(0, 4)
+    .map((focus) => focusMap[focus])
+    .join('、')
+
+  return `你是她健康（Shealth）的 3D 数字人「${name}」，专为女性用户提供健康陪伴。请用第一人称、尊重、不评判的语气回答；${toneMap[preferences?.tone ?? 'gentle']}。${focuses ? `优先关注：${focuses}。` : ''}不制造身材焦虑，不催促锻炼，肯定用户的感受与节奏，给出可执行且温和的建议。`
+}
+
 function getErrorMessage(raw: string) {
   let detail = raw
   try {
@@ -16,7 +44,7 @@ function getErrorMessage(raw: string) {
   return detail
 }
 
-async function callOpenAI(userMessage: string) {
+async function callOpenAI(userMessage: string, systemPrompt: string) {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
     return { ok: false as const, status: 500, error: "缺少 OPENAI_API_KEY" }
@@ -34,8 +62,7 @@ async function callOpenAI(userMessage: string) {
       messages: [
         {
           role: "system",
-          content:
-            "你是她健康（Shealth）的 3D 数字人「灵息」，专为女性用户提供健康陪伴。请用第一人称、温柔、尊重、不评判的语气回答。关注经期照护、情绪安放、舒缓运动与休息恢复；不制造身材焦虑，不催促锻炼，肯定用户的感受与节奏，给出可执行且温和的建议。",
+          content: systemPrompt,
         },
         { role: "user", content: userMessage },
       ],
@@ -56,7 +83,7 @@ async function callOpenAI(userMessage: string) {
   return { ok: true as const, reply }
 }
 
-async function callDeepSeek(userMessage: string, apiKeyOverride?: string) {
+async function callDeepSeek(userMessage: string, systemPrompt: string, apiKeyOverride?: string) {
   const apiKey = apiKeyOverride || process.env.DEEPSEEK_API_KEY
   if (!apiKey) {
     return { ok: false as const, status: 500, error: "缺少 DEEPSEEK_API_KEY" }
@@ -74,8 +101,7 @@ async function callDeepSeek(userMessage: string, apiKeyOverride?: string) {
       messages: [
         {
           role: "system",
-          content:
-            "你是她健康（Shealth）的 3D 数字人「灵息」，专为女性用户提供健康陪伴。请用第一人称、温柔、尊重、不评判的语气回答。关注经期照护、情绪安放、舒缓运动与休息恢复；不制造身材焦虑，不催促锻炼，肯定用户的感受与节奏，给出可执行且温和的建议。",
+          content: systemPrompt,
         },
         { role: "user", content: userMessage },
       ],
@@ -96,7 +122,7 @@ async function callDeepSeek(userMessage: string, apiKeyOverride?: string) {
   return { ok: true as const, reply }
 }
 
-async function requestGemini(model: string, apiKey: string, userMessage: string) {
+async function requestGemini(model: string, apiKey: string, userMessage: string, systemPrompt: string) {
   const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`
 
   const upstream = await fetch(url, {
@@ -106,7 +132,7 @@ async function requestGemini(model: string, apiKey: string, userMessage: string)
       systemInstruction: {
         parts: [
           {
-            text: "你是她健康（Shealth）的 3D 数字人「灵息」，专为女性用户提供健康陪伴。请用第一人称、温柔、尊重、不评判的语气回答。关注经期照护、情绪安放、舒缓运动与休息恢复；不制造身材焦虑，不催促锻炼，肯定用户的感受与节奏，给出可执行且温和的建议。",
+            text: systemPrompt,
           },
         ],
       },
@@ -136,7 +162,7 @@ async function requestGemini(model: string, apiKey: string, userMessage: string)
   return { ok: true as const, reply }
 }
 
-async function callGemini(userMessage: string, apiKeyOverride?: string) {
+async function callGemini(userMessage: string, systemPrompt: string, apiKeyOverride?: string) {
   const apiKey = apiKeyOverride || process.env.GEMINI_API_KEY
   if (!apiKey) {
     return { ok: false as const, status: 500, error: "缺少 GEMINI_API_KEY" }
@@ -147,7 +173,7 @@ async function callGemini(userMessage: string, apiKeyOverride?: string) {
 
   let lastError: { ok: false; status: number; error: string; detail?: string } | null = null
   for (const model of modelCandidates) {
-    const result = await requestGemini(model, apiKey, userMessage)
+    const result = await requestGemini(model, apiKey, userMessage, systemPrompt)
     if (result.ok) return result
 
     const detail = result.detail || ""
@@ -165,8 +191,12 @@ async function callGemini(userMessage: string, apiKeyOverride?: string) {
 
 export async function POST(request: Request) {
   try {
-    const { message } = (await request.json()) as { message?: string }
+    const { message, companionPreferences } = (await request.json()) as {
+      message?: string
+      companionPreferences?: ClientCompanionPreferences
+    }
     const userMessage = message?.trim()
+    const systemPrompt = buildSystemPrompt(companionPreferences)
 
     if (!userMessage) {
       return NextResponse.json({ error: "消息不能为空" }, { status: 400 })
@@ -186,14 +216,15 @@ export async function POST(request: Request) {
       | Awaited<ReturnType<typeof callOpenAI>>
 
     if (provider === "gemini" || (!!geminiKey && !geminiKeyLooksLikeDeepSeek && provider !== "deepseek")) {
-      result = await callGemini(userMessage, !geminiKey && openaiKeyLooksLikeGemini ? openaiKey : undefined)
+      result = await callGemini(userMessage, systemPrompt, !geminiKey && openaiKeyLooksLikeGemini ? openaiKey : undefined)
     } else if (provider === "deepseek" || !!deepseekKey || geminiKeyLooksLikeDeepSeek || (!provider && openaiKeyLooksLikeDeepSeek)) {
       result = await callDeepSeek(
         userMessage,
+        systemPrompt,
         deepseekKey ? undefined : (geminiKeyLooksLikeDeepSeek ? geminiKey : (openaiKeyLooksLikeDeepSeek ? openaiKey : undefined)),
       )
     } else {
-      result = await callOpenAI(userMessage)
+      result = await callOpenAI(userMessage, systemPrompt)
     }
 
     if (!result.ok) {

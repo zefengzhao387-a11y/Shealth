@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { Profile } from '@/lib/supabase'
@@ -57,7 +58,7 @@ interface AuthContextType {
   }>
   signOut: () => Promise<void>
   showAuthModal: boolean
-  openAuthModal: () => void
+  openAuthModal: (redirectToOrEvent?: string | React.MouseEvent) => void
   closeAuthModal: () => void
   refreshProfile: () => Promise<void>
 }
@@ -75,11 +76,25 @@ function validateUsername(username: string): string | null {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [redirectAfterAuth, setRedirectAfterAuth] = useState<string | null>(null)
+
+  const completeAuthentication = () => {
+    setShowAuthModal(false)
+    const destination = redirectAfterAuth
+    setRedirectAfterAuth(null)
+    if (destination) router.push(destination)
+  }
+
+  const closeAuthModal = () => {
+    setShowAuthModal(false)
+    setRedirectAfterAuth(null)
+  }
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -149,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: getFriendlyNetworkError(error, '登录失败，请稍后重试') }
     }
     if (!primaryRes.error) {
-      setShowAuthModal(false)
+      completeAuthentication()
       return { error: null }
     }
 
@@ -165,7 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: getFriendlyNetworkError(error, '登录失败，请稍后重试') }
       }
       if (!fallbackRes.error) {
-        setShowAuthModal(false)
+        completeAuthentication()
         return { error: null }
       }
       if (!fallbackRes.error?.message.includes('Invalid login credentials')) {
@@ -232,7 +247,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: '账号已创建，但个人资料初始化失败，请重新登录后再试' }
       }
       await fetchProfile(data.user.id)
-      setShowAuthModal(false)
+      completeAuthentication()
     }
     if (!error && data.user && !data.session) {
       return { error: null, requiresEmailConfirmation: true }
@@ -260,8 +275,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user, profile, session, loading,
       signIn, signUp, signOut,
       showAuthModal,
-      openAuthModal: () => setShowAuthModal(true),
-      closeAuthModal: () => setShowAuthModal(false),
+      openAuthModal: (redirectToOrEvent) => {
+        setRedirectAfterAuth(typeof redirectToOrEvent === 'string' ? redirectToOrEvent : null)
+        setShowAuthModal(true)
+      },
+      closeAuthModal,
       refreshProfile,
     }}>
       {children}

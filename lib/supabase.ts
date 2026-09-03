@@ -83,6 +83,8 @@ export interface Post {
   user_id: string
   content: string
   image_url: string | null
+  media_url?: string | null
+  media_type?: 'image' | 'video' | null
   likes_count: number
   created_at: string
   profiles?: Profile
@@ -94,6 +96,8 @@ export interface Comment {
   user_id: string
   post_id: string
   content: string
+  media_url?: string | null
+  media_type?: 'image' | 'video' | null
   created_at: string
   profiles?: Profile
 }

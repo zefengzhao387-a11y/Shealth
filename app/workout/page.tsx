@@ -1,6 +1,7 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
+import Image from "next/image"
 import { useState, useEffect, useRef } from "react"
 import { Navigation } from "@/components/shared/navigation"
 import { Petal, BackgroundEffects } from "@/components/shared/effects"
@@ -21,6 +22,7 @@ interface Course {
   instructor: string
   points: number
   thumbnail: string
+  coverImage: string
   gradient: string
   description: string
   steps: string[]
@@ -31,7 +33,7 @@ const courses: Course[] = [
     id: "1", title: "晨间唤醒普拉提", subtitle: "温柔唤醒身体",
     category: "pilates", durationMinutes: 15, difficulty: "入门",
     instructor: "Flora 教练", points: 30,
-    thumbnail: "from-peach/50 to-primary/40", gradient: "from-peach/30 to-primary/20",
+    thumbnail: "from-peach/50 to-primary/40", coverImage: "/workout/covers/morning-pilates.jpg", gradient: "from-peach/30 to-primary/20",
     description: "用温柔的普拉提动作唤醒沉睡的肌肉，为新的一天注入柔和的能量。",
     steps: ["深呼吸预热 2 分钟", "骨盆中立位练习", "腹部核心激活", "侧卧腿部练习", "脊柱伸展收尾"],
   },
@@ -39,7 +41,7 @@ const courses: Course[] = [
     id: "2", title: "办公室肩颈舒缓", subtitle: "缓解久坐疲劳",
     category: "yoga", durationMinutes: 10, difficulty: "入门",
     instructor: "Luna 教练", points: 20,
-    thumbnail: "from-lilac/50 to-secondary/40", gradient: "from-lilac/30 to-secondary/20",
+    thumbnail: "from-lilac/50 to-secondary/40", coverImage: "/workout/covers/office-stretch.jpg", gradient: "from-lilac/30 to-secondary/20",
     description: "专为久坐人群设计，重点舒缓肩颈压力，改善血液循环。",
     steps: ["颈部侧伸展", "肩部绕环运动", "胸腔扩展", "背部猫牛式", "放松冥想"],
   },
@@ -47,7 +49,7 @@ const courses: Course[] = [
     id: "3", title: "经期温和伸展", subtitle: "温柔呵护身心",
     category: "period", durationMinutes: 20, difficulty: "轻柔",
     instructor: "Flora 教练", points: 35,
-    thumbnail: "from-primary/50 to-peach/40", gradient: "from-primary/30 to-peach/20",
+    thumbnail: "from-primary/50 to-peach/40", coverImage: "/workout/covers/gentle-stretch.jpg", gradient: "from-primary/30 to-peach/20",
     description: "经期专属课程，用温柔的动作缓解经期不适，给身体最好的呵护。",
     steps: ["卧姿深呼吸", "膝盖轻柔画圈", "蝴蝶式伸展", "婴儿式放松", "仰卧扭转"],
   },
@@ -55,7 +57,7 @@ const courses: Course[] = [
     id: "4", title: "深度睡眠冥想", subtitle: "安抚疲惫的心",
     category: "meditation", durationMinutes: 25, difficulty: "入门",
     instructor: "Mist 教练", points: 40,
-    thumbnail: "from-sage/50 to-accent/40", gradient: "from-sage/30 to-accent/20",
+    thumbnail: "from-sage/50 to-accent/40", coverImage: "/workout/covers/sleep-meditation.jpg", gradient: "from-sage/30 to-accent/20",
     description: "睡前专属冥想引导，帮助放空思绪，进入深度睡眠状态。",
     steps: ["身体扫描放松", "腹式呼吸练习", "正念冥想引导", "想象海浪意象", "渐进式入眠"],
   },
@@ -63,7 +65,7 @@ const courses: Course[] = [
     id: "5", title: "核心塑形普拉提", subtitle: "温和强化核心",
     category: "pilates", durationMinutes: 30, difficulty: "进阶",
     instructor: "Flora 教练", points: 60,
-    thumbnail: "from-secondary/50 to-lilac/40", gradient: "from-secondary/30 to-lilac/20",
+    thumbnail: "from-secondary/50 to-lilac/40", coverImage: "/workout/covers/core-pilates.jpg", gradient: "from-secondary/30 to-lilac/20",
     description: "温和唤醒核心肌群，在尊重身体的前提下建立力量，不追求速成。",
     steps: ["核心预热激活", "百次练习", "单腿拉伸系列", "侧卧腿部训练", "游泳式练习", "脊柱放松收尾"],
   },
@@ -71,7 +73,7 @@ const courses: Course[] = [
     id: "6", title: "阴瑜伽深度放松", subtitle: "释放深层紧张",
     category: "yoga", durationMinutes: 40, difficulty: "入门",
     instructor: "Luna 教练", points: 65,
-    thumbnail: "from-accent/50 to-sage/40", gradient: "from-accent/30 to-sage/20",
+    thumbnail: "from-accent/50 to-sage/40", coverImage: "/workout/covers/yin-yoga.jpg", gradient: "from-accent/30 to-sage/20",
     description: "长时间保持体式，深入释放筋膜和关节的紧张感。",
     steps: ["蝴蝶式 5 分钟", "鸽子式左右各 5 分钟", "方块式 5 分钟", "婴儿式放松", "挺尸式冥想"],
   },
@@ -79,7 +81,7 @@ const courses: Course[] = [
     id: "7", title: "呼吸调节练习", subtitle: "平衡自律神经",
     category: "meditation", durationMinutes: 15, difficulty: "入门",
     instructor: "Mist 教练", points: 25,
-    thumbnail: "from-peach/50 to-lilac/40", gradient: "from-peach/30 to-lilac/20",
+    thumbnail: "from-peach/50 to-lilac/40", coverImage: "/workout/covers/breathing.jpg", gradient: "from-peach/30 to-lilac/20",
     description: "通过科学的呼吸练习调节自律神经，缓解焦虑紧张。",
     steps: ["4-7-8 呼吸法", "箱式呼吸练习", "交替鼻孔呼吸", "横膈膜呼吸", "正念觉察收尾"],
   },
@@ -87,7 +89,7 @@ const courses: Course[] = [
     id: "8", title: "骨盆底肌修复", subtitle: "产后功能恢复",
     category: "period", durationMinutes: 20, difficulty: "轻柔",
     instructor: "Flora 教练", points: 35,
-    thumbnail: "from-primary/50 to-secondary/40", gradient: "from-primary/30 to-secondary/20",
+    thumbnail: "from-primary/50 to-secondary/40", coverImage: "/workout/covers/gentle-stretch.jpg", gradient: "from-primary/30 to-secondary/20",
     description: "专为骨盆底肌修复设计，温柔而有效，适合产后及久坐人群。",
     steps: ["骨盆感知练习", "Kegel 基础训练", "髋部灵活练习", "腹横肌激活", "放松整合"],
   },
@@ -149,6 +151,14 @@ function CourseCard({ course, index, onClick }: { course: Course; index: number;
     >
       {/* 封面 */}
       <div className={`aspect-[4/3] bg-gradient-to-br ${course.thumbnail} relative overflow-hidden`}>
+        <Image
+          src={course.coverImage}
+          alt=""
+          fill
+          sizes="(min-width: 640px) 320px, 100vw"
+          className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
         {/* 装饰圆 */}
         <motion.div
           className="absolute -bottom-8 -right-8 w-28 h-28 rounded-full bg-white/12"
@@ -298,6 +308,8 @@ function WorkoutPlayer({ course, onClose }: { course: Course; onClose: () => voi
               className={`aspect-[16/9] rounded-3xl bg-gradient-to-br ${course.thumbnail} relative overflow-hidden mb-6`}
               initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
             >
+              <Image src={course.coverImage} alt={`${course.title}课程封面`} fill priority sizes="512px" className="object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/5 to-black/15" />
               <motion.div className="absolute -bottom-12 -right-12 w-48 h-48 rounded-full bg-white/10" animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 4, repeat: Infinity }} />
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <div className="text-center text-white/90">
@@ -352,7 +364,10 @@ function WorkoutPlayer({ course, onClose }: { course: Course; onClose: () => voi
       {(phase === 'playing' || phase === 'paused') && (
         <>
           {/* 背景 */}
-          <div className={`absolute inset-0 bg-gradient-to-br ${course.thumbnail} opacity-30`} />
+          <div className="absolute inset-0 overflow-hidden">
+            <Image src={course.coverImage} alt="" fill sizes="100vw" className="scale-110 object-cover opacity-20 blur-sm" />
+            <div className={`absolute inset-0 bg-gradient-to-br ${course.thumbnail} opacity-65`} />
+          </div>
 
           {/* 当前步骤显示 */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center px-8">
@@ -518,6 +533,8 @@ function TodayRecommend({ onStart }: { onStart: (c: Course) => void }) {
         aria-label={`今日推荐：${recommend.title}`}
         onKeyDown={(e) => e.key === "Enter" && onStart(recommend)}
       >
+        <Image src={recommend.coverImage} alt="" fill sizes="672px" className="object-cover opacity-25" />
+        <div className={`absolute inset-0 bg-gradient-to-r ${recommend.thumbnail} opacity-80`} />
         {/* 装饰背景圆 */}
         <motion.div
           className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/15"
